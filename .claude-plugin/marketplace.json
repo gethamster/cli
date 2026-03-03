@@ -1,12 +1,17 @@
 {
   "name": "hamster-plugins",
   "description": "Claude Code plugins for Hamster Studio",
+  "owner": {
+    "name": "Hamster",
+    "email": "hello@tryhamster.com"
+  },
   "plugins": [
     {
       "name": "hamster",
       "description": "Orchestrates Hamster Studio brief execution using specialized agents",
-      "version": "1.0.0",
-      "path": "."
+      "source": "./",
+      "category": "workflow",
+      "homepage": "https://github.com/gethamster/cli"
     }
   ]
 }
