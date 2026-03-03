@@ -162,8 +162,8 @@ Rules:
 ### Step 7: Risk Assessment
 
 Identify:
-- **High risk**: Tasks touching auth, RLS policies, migrations, or payment logic
-- **Medium risk**: Tasks creating new API endpoints or modifying shared packages
+- **High risk**: Tasks touching authentication, authorization/permissions, database migrations, or payment/billing logic
+- **Medium risk**: Tasks creating new API endpoints or modifying shared libraries
 - **Low risk**: UI-only changes, documentation, test additions
 
 ### Step 8: PR Strategy

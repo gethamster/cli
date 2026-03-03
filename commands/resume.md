@@ -134,7 +134,7 @@ For each remaining parent task:
 ### Completion
 
 Same as `/hamster:execute`:
-1. Final validation (typecheck + lint)
+1. Final validation (project checks)
 2. Push and create PR (or update existing PR)
 3. Update brief status
 4. Final report

@@ -1,7 +1,7 @@
 ---
 name: task-executor
 description: |
-  Implements a single Hamster Studio task (HAM-XXX). Reads the task file from .hamster/, follows the execution plan's codebase mapping, implements changes following project conventions, validates with typecheck/lint, and updates task status via the hamster CLI.
+  Implements a single Hamster Studio task (HAM-XXX). Reads the task file from .hamster/, follows the execution plan's codebase mapping, implements changes following project conventions, validates using the project's tooling, and updates task status via the hamster CLI.
 
   Examples:
   <example>
@@ -66,11 +66,11 @@ Also read relevant CLAUDE.md files for the directories you'll be working in.
 ### Step 4: Plan Implementation
 
 Before writing any code, plan the order of changes:
-1. **Database migrations** (if needed) — schema changes first
-2. **Type generation** (if migrations added) — `pnpm supabase:web:typegen`
+1. **Schema/data changes** (if needed) — database migrations, config changes first
+2. **Type/interface updates** (if schema changed) — regenerate or update types
 3. **Backend changes** — API modules, services, controllers
-4. **Shared packages** — types, utilities, hooks
-5. **Frontend changes** — pages, components, server actions
+4. **Shared code** — types, utilities, helpers
+5. **Frontend changes** — pages, components, UI
 6. **Tests** — unit tests, integration tests
 
 ### Step 5: Implement
@@ -78,18 +78,17 @@ Before writing any code, plan the order of changes:
 Write code following these principles:
 
 **Code Quality**:
-- TypeScript strict mode — no `any` without explicit justification
-- Use existing types from `@kit/supabase/database` before creating new ones
+- Follow the project's type system strictly — avoid untyped or loosely typed code
+- Reuse existing types and interfaces before creating new ones
 - Use immutable patterns — create new objects, never mutate
 - Functions under 50 lines, files under 800 lines
-- No hardcoded values, no `console.log` statements
+- No hardcoded values, no debug logging left in production code
 
 **Project Conventions**:
-- Use `enhanceAction` for server actions, `enhanceRouteHandler` for API routes
-- Use semantic Tailwind tokens (`bg-background`, not `bg-gray-500`)
-- Prefer Server Components for data fetching
-- Use `@kit/*` packages before creating local solutions
-- Follow RLS patterns for all database access
+- Read CLAUDE.md (or equivalent project guidelines) and follow whatever patterns the project uses
+- Use the project's existing abstractions and shared packages before creating local solutions
+- Follow the project's styling approach (design tokens, CSS framework, etc.)
+- Follow the project's data access patterns and security model
 
 **Existing Code**:
 - NEVER rebuild existing functionality — modify it
@@ -99,10 +98,14 @@ Write code following these principles:
 
 ### Step 6: Validate
 
-Run validation after implementation:
+Run whatever validation the project uses (type checking, linting, formatting, compilation). Detect the project's tooling by checking for config files:
 
 ```bash
-pnpm typecheck && pnpm lint
+# Detect and run project validation (check which tools exist)
+[ -f "package.json" ] && command -v pnpm >/dev/null && pnpm typecheck 2>/dev/null; pnpm lint 2>/dev/null
+[ -f "Makefile" ] && make check 2>/dev/null
+[ -f "Cargo.toml" ] && cargo check 2>/dev/null && cargo clippy 2>/dev/null
+[ -f "go.mod" ] && go vet ./... 2>/dev/null
 ```
 
 If errors occur:
@@ -134,8 +137,8 @@ Produce a summary:
 | Task file not found | Report error, do not proceed |
 | Referenced file doesn't exist | Check if it should be created per the task description |
 | `hamster` CLI auth fails | Log warning, continue without status updates |
-| Typecheck fails | Read errors, fix, re-run (max 3 attempts) |
-| Lint fails | Run `pnpm lint:fix`, then re-check |
+| Typecheck/compilation fails | Read errors, fix, re-run (max 3 attempts) |
+| Lint fails | Run the project's lint auto-fix command if available, then re-check |
 | Task is already `done` | Report and skip |
 
 ## Important Rules

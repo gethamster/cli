@@ -238,15 +238,19 @@ Remaining: {n} parent tasks
 
 ### Final Validation
 
-Run the full validation suite:
+Run whatever validation the project uses. Detect the project's tooling and run appropriate checks:
+
 ```bash
-pnpm typecheck && pnpm lint
+# Detect and run project validation
+[ -f "package.json" ] && command -v pnpm >/dev/null && { pnpm typecheck 2>/dev/null; pnpm lint 2>/dev/null; }
+[ -f "package.json" ] && command -v npm >/dev/null && ! command -v pnpm >/dev/null && { npm run typecheck 2>/dev/null; npm run lint 2>/dev/null; }
+[ -f "package.json" ] && command -v yarn >/dev/null && ! command -v pnpm >/dev/null && { yarn typecheck 2>/dev/null; yarn lint 2>/dev/null; }
+[ -f "Makefile" ] && make check 2>/dev/null
+[ -f "Cargo.toml" ] && cargo check && cargo clippy 2>/dev/null
+[ -f "go.mod" ] && go build ./... && go vet ./... 2>/dev/null
 ```
 
-If tests are configured for the affected areas:
-```bash
-pnpm test
-```
+If tests are configured for the affected areas, run the project's test command.
 
 ### Create PR
 
@@ -287,7 +291,7 @@ Brief execution complete!
 | `.hamster/` missing | Stop — tell user to run `hamster sync` |
 | Brief not found | Search for partial matches in `.hamster/{account}/briefs/`, suggest closest |
 | Auth expired | Run `hamster auth login`, continue without status updates if still fails |
-| Typecheck/lint fails after task | Fix errors, re-run; if stuck after 3 attempts, ask user |
+| Validation fails after task | Fix errors, re-run; if stuck after 3 attempts, ask user |
 | Git conflict | Report to user, pause execution |
 | Pre-commit hook fails | Fix the issues, create a new commit (never `--no-verify`) |
 | Task already done | Skip it, move to next |

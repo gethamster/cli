@@ -149,22 +149,12 @@ Brief: {brief-slug}
 
    ## Changes
 
-   {grouped list of key changes by area}
-
-   ### Database
-   - {migration changes if any}
-
-   ### Backend
-   - {API changes if any}
-
-   ### Frontend
-   - {UI changes if any}
+   {grouped list of key changes by area — adapt sections to the project's architecture}
 
    ## Test Plan
 
-   - [ ] Typecheck passes (`pnpm typecheck`)
-   - [ ] Lint passes (`pnpm lint`)
-   - [ ] Unit tests pass (`pnpm test`)
+   - [ ] Project validation passes (type checks, linting, compilation)
+   - [ ] Tests pass
    - [ ] Manual testing of key flows
 
    ## Brief
