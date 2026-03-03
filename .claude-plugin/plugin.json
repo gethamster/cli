@@ -1,0 +1,11 @@
+{
+  "name": "goham",
+  "version": "1.0.0",
+  "description": "Orchestrates Hamster Studio brief execution using specialized agents. Reads briefs/tasks from .hamster/, implements them sequentially with dependency awareness, reviews and simplifies code, and manages git operations.",
+  "author": {
+    "name": "Hamster",
+    "url": "https://tryhamster.com"
+  },
+  "license": "MIT",
+  "keywords": ["hamster", "brief-execution", "task-orchestration", "ai-workflow"]
+}
