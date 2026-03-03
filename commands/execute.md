@@ -41,14 +41,34 @@ echo "$account"
 
 ### If argument is provided ("$ARGUMENTS" is not empty):
 
-**Parse the argument** — extract a brief slug from a URL or use as-is:
+**Parse the argument** — extract a brief slug from a URL, UUID, or use as-is. URLs use a brief UUID (not slug) in the path, e.g. `https://tryhamster.com/home/hamster/briefs/2de8d546-...`:
+
 ```bash
 arg="$ARGUMENTS"
 arg="${arg%/}"
+
+# Extract identifier from URL or use as-is
 if echo "$arg" | grep -qE '^https?://'; then
-  slug=$(echo "$arg" | sed -E 's|^https?://[^/]+/home/[^/]+/briefs/([^/]+)(/tasks)?$|\1|')
+  identifier=$(echo "$arg" | sed -E 's|^https?://[^/]+/home/[^/]+/briefs/([^/]+)(/tasks)?$|\1|')
 else
-  slug="$arg"
+  identifier="$arg"
+fi
+
+# If identifier is a UUID, resolve to slug via brief frontmatter
+if echo "$identifier" | grep -qE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
+  slug=""
+  for brief_dir in .hamster/${account}/briefs/*/; do
+    bf="${brief_dir}brief.md"
+    [ -f "$bf" ] || continue
+    eid=$(awk '/^---$/{n++; next} n==1 && /^entity_id:/{gsub(/["'"'"']/, "", $2); print $2; exit}' "$bf")
+    if [ "$eid" = "$identifier" ]; then
+      slug=$(basename "$brief_dir")
+      break
+    fi
+  done
+  [ -z "$slug" ] && echo "No brief found with ID $identifier"
+else
+  slug="$identifier"
 fi
 echo "$slug"
 ```

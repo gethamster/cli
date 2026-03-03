@@ -85,11 +85,11 @@ In Claude Code:
 
 #### `/hamster:execute`
 
-The main orchestrator. Accepts a brief slug or Hamster Studio URL:
+The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 ```
 /hamster:execute user-authentication
-/hamster:execute https://tryhamster.com/home/my-team/briefs/user-authentication
+/hamster:execute https://tryhamster.com/home/hamster/briefs/2de8d546-50ab-4dbd-a678-579ec8119f60
 ```
 
 If no argument is given, presents an interactive picker of actionable briefs.
