@@ -62,7 +62,7 @@ A [Claude skill](https://docs.anthropic.com/en/docs/claude-code/skills) is also 
 
 ---
 
-## goham — Claude Code Plugin
+## hamster — Claude Code Plugin
 
 This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. It reads briefs and tasks from `.hamster/`, implements them sequentially with dependency awareness, reviews and simplifies code, and manages git operations with commits after each subtask.
 
@@ -72,45 +72,45 @@ In Claude Code:
 
 ```
 /plugin marketplace add gethamster/cli
-/plugin install goham@gethamster-cli
+/plugin install hamster@gethamster-cli
 ```
 
 ### Plugin commands
 
 | Command | Description |
 |---------|-------------|
-| `/goham:execute [slug-or-url]` | Full brief execution: analyze, implement, review, simplify, commit, PR |
-| `/goham:analyze [slug-or-url]` | Read-only analysis: dependency graph, codebase mapping, risk assessment |
-| `/goham:resume [slug]` | Resume interrupted execution from where you left off |
+| `/hamster:execute [slug-or-url]` | Full brief execution: analyze, implement, review, simplify, commit, PR |
+| `/hamster:analyze [slug-or-url]` | Read-only analysis: dependency graph, codebase mapping, risk assessment |
+| `/hamster:resume [slug]` | Resume interrupted execution from where you left off |
 
-#### `/goham:execute`
+#### `/hamster:execute`
 
 The main orchestrator. Accepts a brief slug or Hamster Studio URL:
 
 ```
-/goham:execute user-authentication
-/goham:execute https://tryhamster.com/home/my-team/briefs/user-authentication
+/hamster:execute user-authentication
+/hamster:execute https://tryhamster.com/home/my-team/briefs/user-authentication
 ```
 
 If no argument is given, presents an interactive picker of actionable briefs.
 
 **Flow**: Prerequisites check -> Brief selection -> Analysis (with user confirmation) -> Branch creation -> Task execution loop (implement -> commit -> review -> simplify) -> Final validation -> PR creation
 
-#### `/goham:analyze`
+#### `/hamster:analyze`
 
 Read-only analysis. Produces the execution plan without making changes. Useful for reviewing scope before committing to execution.
 
 ```
-/goham:analyze api-rate-limiting
+/hamster:analyze api-rate-limiting
 ```
 
-#### `/goham:resume`
+#### `/hamster:resume`
 
 Resumes an interrupted execution. Auto-detects the brief from the git branch name (`feature/ham-{id}-{slug}`), in-progress tasks, or a provided argument.
 
 ```
-/goham:resume
-/goham:resume user-authentication
+/hamster:resume
+/hamster:resume user-authentication
 ```
 
 ### Agents

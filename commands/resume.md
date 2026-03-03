@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "Edit", "Agent", "LSP",
 
 # Resume Brief Execution
 
-Resumes an interrupted `/goham:execute` session. Auto-detects the brief from git branch name or in-progress tasks, finds the resume point, and continues the execution loop.
+Resumes an interrupted `/hamster:execute` session. Auto-detects the brief from git branch name or in-progress tasks, finds the resume point, and continues the execution loop.
 
 **Argument**: "$ARGUMENTS"
 
@@ -57,7 +57,7 @@ If multiple briefs have in-progress tasks, use AskUserQuestion to let the user c
 
 **Method D — None found**:
 - Tell the user no interrupted execution was detected
-- Suggest running `/goham:analyze` to pick a brief, or `/goham:execute` to start fresh
+- Suggest running `/hamster:analyze` to pick a brief, or `/hamster:execute` to start fresh
 
 ---
 
@@ -112,7 +112,7 @@ If "Start from a different task": ask which task display ID to start from.
 
 ## Continue Execution
 
-Once confirmed, continue the execution loop from `/goham:execute`:
+Once confirmed, continue the execution loop from `/hamster:execute`:
 
 ### Check Branch
 
@@ -122,7 +122,7 @@ Verify we're on the correct feature branch:
 
 ### Resume Loop
 
-Continue the execution loop exactly as in `/goham:execute`, starting from the resume point:
+Continue the execution loop exactly as in `/hamster:execute`, starting from the resume point:
 
 For each remaining parent task:
 1. Execute subtasks → commit each
@@ -133,7 +133,7 @@ For each remaining parent task:
 
 ### Completion
 
-Same as `/goham:execute`:
+Same as `/hamster:execute`:
 1. Final validation (typecheck + lint)
 2. Push and create PR (or update existing PR)
 3. Update brief status

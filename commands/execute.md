@@ -280,6 +280,6 @@ Brief execution complete!
 - Each subtask gets its own commit for clean git history
 - Review happens at the parent-task level (not per-subtask)
 - Simplification is optional — if code is already clean, skip
-- The user can interrupt at any time — use `/goham:resume` to continue later
+- The user can interrupt at any time — use `/hamster:resume` to continue later
 - Prefer a single PR for the entire brief unless it grows too large
 - If the brief is very large (>15 tasks), confirm with the user whether to split into multiple PRs

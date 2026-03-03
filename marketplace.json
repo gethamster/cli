@@ -3,7 +3,7 @@
   "description": "Claude Code plugins for Hamster Studio",
   "plugins": [
     {
-      "name": "goham",
+      "name": "hamster",
       "description": "Orchestrates Hamster Studio brief execution using specialized agents",
       "version": "1.0.0",
       "path": "."

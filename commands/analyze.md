@@ -40,7 +40,7 @@ ls ".hamster/${account}/briefs/${slug}/brief.md" && echo "Found: $slug"
 
 ### If no argument provided:
 
-**List actionable briefs** (same script as `/goham:execute`):
+**List actionable briefs** (same script as `/hamster:execute`):
 ```bash
 account=$(ls -d .hamster/*/ 2>/dev/null | head -1 | xargs basename)
 briefs_dir=".hamster/${account}/briefs"
@@ -103,7 +103,7 @@ After presenting the analysis, offer to transition to execution:
 
 Use AskUserQuestion:
 - "Would you like to execute this brief?"
-- Options: "Yes, execute now" → run `/goham:execute {slug}`, "No, just analyzing" → end
+- Options: "Yes, execute now" → run `/hamster:execute {slug}`, "No, just analyzing" → end
 
 ---
 
