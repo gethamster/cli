@@ -130,6 +130,18 @@ Use AskUserQuestion:
 
 ---
 
+## Error Recovery
+
+| Error | Recovery |
+|-------|----------|
+| `.hamster/` missing | Stop — tell user to run `hamster sync` |
+| Brief not found | Search for partial matches, suggest closest |
+| brief-planner fails | Report error, suggest running `hamster sync` to refresh data |
+| Malformed argument | Show usage examples, ask user to re-enter |
+
+---
+
+
 ## Notes
 
 - This command makes NO code changes, NO git operations, NO status updates

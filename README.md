@@ -64,7 +64,7 @@ A [Claude skill](https://docs.anthropic.com/en/docs/claude-code/skills) is also 
 
 ## hamster — Claude Code Plugin
 
-This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. It reads briefs and tasks from `.hamster/`, implements them sequentially with dependency awareness, reviews and simplifies code, and manages git operations with commits after each subtask.
+This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. It reads briefs and tasks from `.hamster/`, plans parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each parent task.
 
 ### Plugin install
 
@@ -79,8 +79,8 @@ In Claude Code:
 
 | Command | Description |
 |---------|-------------|
-| `/hamster:execute [slug-or-url]` | Full brief execution: analyze, implement, review, simplify, commit, PR |
-| `/hamster:analyze [slug-or-url]` | Read-only analysis: dependency graph, codebase mapping, risk assessment |
+| `/hamster:execute [slug-or-url]` | Full brief execution: plan waves, implement in parallel, review, commit per parent, PR |
+| `/hamster:analyze [slug-or-url]` | Read-only analysis: dependency graph, parallel wave visualization, risk assessment |
 | `/hamster:resume [slug]` | Resume interrupted execution from where you left off |
 
 #### `/hamster:execute`
@@ -94,7 +94,7 @@ The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 If no argument is given, presents an interactive picker of actionable briefs.
 
-**Flow**: Prerequisites check -> Brief selection -> Analysis (with user confirmation) -> Branch creation -> Task execution loop (implement -> commit -> review -> simplify) -> Final validation -> PR creation
+**Flow**: Prerequisites check -> Brief selection -> Analysis (with user confirmation) -> Branch creation -> Parallel wave execution (implement -> validate -> review -> commit per parent) -> Final validation -> PR creation
 
 #### `/hamster:analyze`
 
@@ -139,7 +139,7 @@ Post-wave:
 ### Git conventions
 
 - **Branch**: `feature/ham-{lowest-id}-{brief-slug}`
-- **Subtask commits**: `feat(ham-123): concise description`
+- **Parent task commits**: `feat(ham-123): concise description`
 - **Simplification commits**: `refactor(ham-123): simplify description`
 - **Review fix commits**: `fix(ham-123): address review findings`
 - **PR**: Includes task checklist, changes summary, and test plan

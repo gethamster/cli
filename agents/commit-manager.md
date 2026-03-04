@@ -48,6 +48,8 @@ git checkout -b "$branch"
 echo "Created branch: $branch"
 ```
 
+**Output**: Confirmation message with branch name created, or error if git state is dirty.
+
 **Branch naming**: `feature/ham-{lowest-display-id-number}-{brief-slug}`
 - Example: `feature/ham-123-user-authentication`
 - Use only the numeric part of the display ID (e.g., 123 from HAM-123)
@@ -92,6 +94,8 @@ echo "Created branch: $branch"
    EOF
    )"
    ```
+
+**Output**: PR URL from `gh pr create`, or error message if push/PR creation fails.
 
 **PR title**: Keep under 70 characters, descriptive of the brief's purpose.
 
