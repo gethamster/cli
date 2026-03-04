@@ -1,12 +1,12 @@
 ---
-description: "Execute a Hamster Studio brief end-to-end: analyze, implement tasks, review, simplify, commit, and create PR"
+description: "Orchestrates full parallel wave execution of a Hamster Studio brief using specialized agents. Reads briefs/tasks from `.hamster/`, plans parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each wave."
 argument-hint: "[brief-slug-or-url]"
 allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "Edit", "Agent", "LSP", "AskUserQuestion"]
 ---
 
 # Execute Hamster Brief
 
-Orchestrates the full execution of a Hamster Studio brief using specialized agents. Reads briefs/tasks from `.hamster/`, implements them sequentially with dependency awareness, reviews and simplifies code, and manages git operations with commits after each subtask.
+Orchestrates the full execution of a Hamster Studio brief using specialized agents. Reads briefs/tasks from `.hamster/`, plans parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each wave.
 
 **Argument**: "$ARGUMENTS"
 
@@ -122,19 +122,20 @@ Present this output to the user and use AskUserQuestion to let them pick a brief
 
 ## Analysis Phase
 
-Launch the **brief-analyzer** agent with:
+Launch the **brief-planner** agent with:
 - The resolved brief slug
 - The account slug
 - Project root directory
 
-The analyzer will return an execution plan with:
+The planner returns an execution plan with:
 - Dependency graph (parent/subtask tree)
-- Codebase mapping (files per task)
+- **Parallel Waves** (which parents execute simultaneously)
 - Execution order
+- Conflict groups (parents serialized due to overlapping mentions)
 - Risk assessment
 - PR strategy
 
-**Display the execution plan to the user and ask for confirmation before proceeding.**
+**Display the execution plan to the user** including the Parallel Waves visualization.
 
 Use AskUserQuestion:
 - "Execute this plan?" with options: "Yes, execute", "Modify plan", "Cancel"
@@ -145,92 +146,148 @@ Use AskUserQuestion:
 
 ## Branch Creation
 
+Create the feature branch directly (no agent needed):
+
 **Get the lowest display ID for branch naming**:
 ```bash
 tasks_dir=".hamster/${account}/briefs/${slug}/tasks"
 lowest_id=$(ls "$tasks_dir"/*.md 2>/dev/null | xargs -I{} basename {} | grep -oE 'ham-[0-9]+' | sed 's/ham-//' | sort -n | head -1)
-echo "feature/ham-${lowest_id}-${slug}"
+branch="feature/ham-${lowest_id}-${slug}"
 ```
 
-Launch the **commit-manager** agent with operation: **Create Feature Branch**
-- Brief slug and the lowest ID number computed above
+Create and switch to the branch:
+```bash
+git checkout -b "$branch"
+echo "Created branch: $branch"
+```
 
 ---
 
 ## Execution Loop
 
-Process tasks in the order determined by the analyzer's execution plan.
+Process tasks in the parallel waves determined by the brief-planner.
 
-### For each parent task:
+### For each wave (in order):
 
-#### 1. Execute Subtasks
+#### Step 1: Parallel Execution
 
-For each subtask under this parent (in order):
+**Launch ALL task-executor agents for this wave simultaneously in a single turn (parallel Agent calls).**
 
-**a. Implement**: Launch **task-executor** agent with:
-- The subtask's display ID
+For each parent task in this wave, launch a **task-executor** agent with:
+- Parent task display ID
+- All subtask display IDs under this parent (in order)
 - Brief slug and account slug
-- Codebase mapping for this task
 - Brief context summary
-- Project conventions
+- Project conventions (from brief-planner output)
 
-**b. Commit**: Launch **commit-manager** agent with operation: **Commit Subtask**
-- The subtask's display ID
-- List of files changed (from task-executor's report)
-- Description of changes
+> IMPORTANT: Launch ALL executors for this wave as parallel Agent calls in a single message.
+> Do not wait for one to complete before starting the next.
+> If the runtime serializes them, they will still execute correctly — just sequentially.
 
-If the pre-commit hook fails, read the error, fix the issues, and create a new commit (never amend).
+Wait for ALL task-executors in this wave to complete.
 
-#### 2. Mark Parent Done
+Each executor reports:
+- Files modified (list)
+- Files created (list)
+- Subtasks completed
 
-After all subtasks complete:
+Collect ALL file lists from ALL executors in this wave.
+
+#### Step 2: Post-Wave Validation
+
+After ALL executors complete, run project validation ONCE:
+
 ```bash
-hamster task status {PARENT-DISPLAY-ID} done
+[ -f "package.json" ] && command -v pnpm >/dev/null && { pnpm typecheck 2>/dev/null; pnpm lint 2>/dev/null; }
+[ -f "package.json" ] && command -v npm >/dev/null && ! command -v pnpm >/dev/null && { npm run typecheck 2>/dev/null; npm run lint 2>/dev/null; }
+[ -f "package.json" ] && command -v yarn >/dev/null && ! command -v pnpm >/dev/null && { yarn typecheck 2>/dev/null; yarn lint 2>/dev/null; }
+[ -f "Makefile" ] && make check 2>/dev/null
+[ -f "Cargo.toml" ] && cargo check && cargo clippy 2>/dev/null
+[ -f "go.mod" ] && go build ./... && go vet ./... 2>/dev/null
 ```
 
-If the parent task has no subtasks (standalone task), execute it directly as if it were a subtask, then mark it done.
+If validation fails: fix the errors before proceeding. This may require using Edit directly for type errors, or re-launching a task-executor with the specific fix.
 
-#### 3. Review
+#### Step 3: Parallel Quality Gates
 
-Launch **task-reviewer** agent with:
+**Launch ALL quality-gate agents for this wave simultaneously in a single turn (parallel Agent calls).**
+
+For each parent in this wave, launch a **quality-gate** agent with:
 - Parent task display ID
-- All subtask display IDs
-- All files changed during this parent task
+- Subtask display IDs
+- List of files changed (from that executor's report)
 - Brief context
 
-**If verdict is NEEDS_FIXES**:
+> IMPORTANT: Launch ALL quality-gates for this wave as parallel Agent calls in a single message.
+
+Wait for ALL quality-gate agents to complete.
+
+#### Step 4: Handle Quality Gate Results
+
+For each quality-gate result:
+
+**If NEEDS_FIXES**:
 1. Read the specific issues from the review
-2. Fix each issue (using Edit tool directly — no need to re-launch task-executor for small fixes)
-3. Launch **commit-manager** with operation: **Commit Review Fixes**
-4. Re-run **task-reviewer** to verify fixes
-5. Maximum 2 review rounds — if still failing, report issues to user
+2. Fix each issue:
+   - For small issues (1-3 file changes): fix directly using Edit tool
+   - For larger issues: re-launch task-executor for that parent with the issues listed
+3. Re-run **quality-gate** for that parent to verify fixes
+4. Maximum 2 review rounds — if still failing after 2 rounds, report issues to user and ask whether to skip or fix manually
 
-**If verdict is PASS**: continue to simplification
+**If PASS**: the quality-gate may have made simplification changes. Those are already in the working tree.
 
-#### 4. Simplify
+#### Step 5: Commit Wave
 
-Launch **code-simplifier** agent with:
-- Files changed during this parent task
-- Brief context
-- Parent task display ID
+For each parent in this wave (sequentially — commits are serial for git safety):
 
-If the simplifier makes changes:
-- Launch **commit-manager** with operation: **Commit Simplification**
+```bash
+# Stage specific files only (all files changed by executor + any simplification changes)
+git add {file1} {file2} {file3}
 
-If no changes needed: continue
+# Verify nothing unwanted is staged
+git diff --cached --name-only
 
-#### 5. Progress Report
+# Commit
+git commit -m "$(cat <<'EOF'
+feat(ham-{id}): {concise description of parent task}
 
-After each parent task completes, report progress:
+- {bullet: key change 1}
+- {bullet: key change 2}
+
+Task: HAM-{id}
+Brief: {brief-slug}
+EOF
+)"
 ```
-Completed: HAM-{id}: {title}
-  Subtasks: {n}/{n} done
-  Review: PASS
-  Simplification: {changes made / no changes}
-  Commits: {n} commits
 
-Remaining: {n} parent tasks
+For quality-gate simplification changes (if any were made):
+```bash
+git add {simplified-files}
+git commit -m "refactor(ham-{id}): simplify post-review
+
+- {what was simplified}
+
+Task: HAM-{id}
+Brief: {brief-slug}"
 ```
+
+**NEVER use `git add .` or `git add -A`** — always stage specific files.
+If any pre-commit hook fails: read the error, fix the issue, create a new commit (never `--no-verify`).
+
+#### Step 6: Wave Progress Report
+
+After each wave completes, report progress:
+```
+Wave {n} complete:
+  HAM-{id}: {title} — {n} subtasks, PASS, {n} commits
+  HAM-{id}: {title} — {n} subtasks, PASS, {n} commits
+
+Remaining: {n} waves, {n} parent tasks
+```
+
+### Mark Parent Tasks Done
+
+After all subtasks complete for a parent, the task-executor marks it done via `hamster task status`. Verify this happened by checking task statuses in the progress report.
 
 ---
 
@@ -253,12 +310,11 @@ Run whatever validation the project uses. Detect the project's tooling and run a
 If tests are configured for the affected areas, run the project's test command.
 
 ### Create PR
-
 Launch **commit-manager** agent with operation: **Push and Create PR**
-- Brief title (from the brief.md frontmatter)
+- Brief title (from brief.md frontmatter)
 - Brief slug
 - Complete task list with display IDs and titles
-- Summary of all changes made
+- Summary of all changes made across all waves
 
 ### Update Brief Status
 
@@ -275,6 +331,7 @@ Brief execution complete!
   Branch: feature/ham-{id}-{slug}
   PR: {PR URL}
   Tasks completed: {n}/{total}
+  Waves executed: {n}
   Commits: {total commits}
   Review rounds: {n}
 
@@ -289,9 +346,11 @@ Brief execution complete!
 |-------|----------|
 | Hamster CLI not found | Stop with installation instructions |
 | `.hamster/` missing | Stop — tell user to run `hamster sync` |
-| Brief not found | Search for partial matches in `.hamster/{account}/briefs/`, suggest closest |
-| Auth expired | Run `hamster auth login`, continue without status updates if still fails |
-| Validation fails after task | Fix errors, re-run; if stuck after 3 attempts, ask user |
+| Brief not found | Search for partial matches, suggest closest |
+| Auth expired | Run `hamster auth login`, continue without status updates |
+| Wave validation fails | Fix errors before proceeding to quality gates |
+| Parallel executor conflict: two executors modified the same file | Stop, report conflict to user, ask for guidance |
+| Quality gate NEEDS_FIXES after 2 rounds | Report issues to user, ask whether to skip or fix manually |
 | Git conflict | Report to user, pause execution |
 | Pre-commit hook fails | Fix the issues, create a new commit (never `--no-verify`) |
 | Task already done | Skip it, move to next |
@@ -301,9 +360,9 @@ Brief execution complete!
 
 ## Notes
 
-- Each subtask gets its own commit for clean git history
-- Review happens at the parent-task level (not per-subtask)
-- Simplification is optional — if code is already clean, skip
-- The user can interrupt at any time — use `/hamster:resume` to continue later
+- Each parent task gets its own commit(s) for clean git history (subtasks are NOT committed individually)
+- Review and simplification handled by quality-gate agent (merged into one session)
+- Parent tasks in the same wave execute in parallel for performance
+- The user can interrupt at any time — use `/hamster:resume` to continue
 - Prefer a single PR for the entire brief unless it grows too large
-- If the brief is very large (>15 tasks), confirm with the user whether to split into multiple PRs
+- If the brief is very large (>15 tasks), confirm with user whether to split into multiple PRs

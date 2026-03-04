@@ -1,12 +1,12 @@
 ---
-description: "Analyze a Hamster Studio brief: read tasks, build dependency graph, map to codebase (read-only, no changes)"
+description: "Analyze a Hamster Studio brief: read tasks, build dependency graph, detect parallel execution waves, map overlapping tasks (read-only, no changes)"
 argument-hint: "[brief-slug-or-url]"
 allowed-tools: ["Bash", "Glob", "Grep", "Read", "Agent", "AskUserQuestion"]
 ---
 
 # Analyze Hamster Brief
 
-Read-only analysis of a Hamster Studio brief. Reads all tasks from `.hamster/`, builds the dependency graph, maps tasks to codebase files, and presents the execution plan — without making any changes.
+Read-only analysis of a Hamster Studio brief. Reads all tasks from `.hamster/`, builds the dependency graph, detects parallel execution waves, maps overlapping tasks, and presents the execution plan — without making any changes.
 
 **Argument**: "$ARGUMENTS"
 
@@ -95,7 +95,7 @@ Use AskUserQuestion to let the user pick.
 
 ## Analysis
 
-Launch the **brief-analyzer** agent with:
+Launch the **brief-planner** agent with:
 - The resolved brief slug
 - The account slug
 - Project root directory
@@ -104,14 +104,19 @@ Launch the **brief-analyzer** agent with:
 
 ## Present Results
 
-Display the full execution plan from the analyzer:
-- Brief summary
-- Dependency graph
-- Execution order
-- Codebase mapping
-- Risk assessment
-- PR strategy
-- Conventions that apply
+Display the full execution plan from the planner:
+
+- **Brief summary** (slug, status, task counts)
+- **Dependency Graph** (parent/subtask tree)
+- **Parallel Waves** — show which parent tasks can execute simultaneously:
+  ```
+  Wave 1 (parallel): HAM-100, HAM-300
+  Wave 2 (parallel): HAM-200 (conflicts with HAM-100: both mention auth)
+  ```
+- **Execution Order** (organized by wave)
+- **Risk Assessment** (high/medium/low risk tasks)
+- **PR Strategy** (single PR vs. multiple)
+- **Conventions** (key CLAUDE.md rules that apply)
 
 ---
 
@@ -130,4 +135,4 @@ Use AskUserQuestion:
 - This command makes NO code changes, NO git operations, NO status updates
 - Safe to run repeatedly to understand brief scope
 - Useful for reviewing a brief before committing to execution
-- The analysis output can be used to plan manual implementation if preferred
+- The brief-planner output can be used to plan manual implementation if preferred
