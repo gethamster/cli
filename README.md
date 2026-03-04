@@ -117,24 +117,23 @@ Resumes an interrupted execution. Auto-detects the brief from the git branch nam
 
 | Agent | Model | Purpose |
 |-------|-------|---------|
-| **brief-analyzer** | Opus | Reads brief + tasks, builds dependency graph, maps to codebase |
-| **task-executor** | Opus | Implements a single task following the execution plan |
-| **task-reviewer** | Sonnet | Reviews cumulative work after parent task completion |
-| **code-simplifier** | Opus | Post-review polish of recently modified files |
-| **commit-manager** | Sonnet | Branch creation, per-subtask commits, PR creation |
+| **brief-planner** | Sonnet | Reads brief + tasks, builds dependency graph, groups parents into parallel execution waves |
+| **task-executor** | Opus | Implements all subtasks of a parent task in one session using JIT context discovery |
+| **quality-gate** | Sonnet | Reviews code quality and applies simplifications (merged review + simplify) |
+| **commit-manager** | Sonnet | Branch creation and PR creation only |
 
 ### Execution loop
 
-For each parent task in the brief:
+For each wave of independent parent tasks (executed in parallel):
 
 ```
-For each subtask:
-  task-executor -> implement
-  commit-manager -> commit
+Wave N (parallel):
+  [task-executor A] || [task-executor B] || [task-executor C]
 
-Mark parent done
-task-reviewer -> review (fix if needed)
-code-simplifier -> simplify (commit if changes)
+Post-wave:
+  Validation (typecheck/lint)
+  [quality-gate A] || [quality-gate B] || [quality-gate C]
+  Orchestrator commits per parent (direct bash)
 ```
 
 ### Git conventions
