@@ -35,6 +35,13 @@ account=$(ls -d .hamster/*/ 2>/dev/null | head -1 | xargs basename)
 echo "$account"
 ```
 
+**Start live sync** so task status updates are reflected in local `.hamster/` files:
+```bash
+hamster sync --watch > /dev/null 2>&1 &
+HAMSTER_SYNC_PID=$!
+echo "Live sync started (PID: $HAMSTER_SYNC_PID)"
+```
+
 ---
 
 ## Brief Selection
@@ -292,6 +299,12 @@ After all subtasks complete for a parent, the task-executor marks it done via `h
 ---
 
 ## Completion
+
+### Stop Live Sync
+
+```bash
+[ -n "$HAMSTER_SYNC_PID" ] && kill "$HAMSTER_SYNC_PID" 2>/dev/null && echo "Live sync stopped"
+```
 
 ### Final Validation
 

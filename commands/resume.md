@@ -21,6 +21,13 @@ account=$(ls -d .hamster/*/ 2>/dev/null | head -1 | xargs basename)
 echo "Account: $account"
 ```
 
+**Start live sync** so task status updates are reflected in local `.hamster/` files:
+```bash
+hamster sync --watch > /dev/null 2>&1 &
+HAMSTER_SYNC_PID=$!
+echo "Live sync started (PID: $HAMSTER_SYNC_PID)"
+```
+
 ### Step 2: Identify the Brief
 
 Try these methods in order:
@@ -235,7 +242,10 @@ Remaining: {n} waves, {n} parent tasks
 
 ### Completion
 
-Same as `/hamster:execute`:
+Stop live sync, then same as `/hamster:execute`:
+```bash
+[ -n "$HAMSTER_SYNC_PID" ] && kill "$HAMSTER_SYNC_PID" 2>/dev/null && echo "Live sync stopped"
+```
 1. Final validation (project checks)
 2. Push and create PR (or update existing PR)
 3. Update brief status
