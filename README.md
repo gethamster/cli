@@ -75,36 +75,36 @@ In Claude Code:
 /plugin install hamster@gethamster-cli
 ```
 
-### Plugin commands
+### Plugin skills
 
-| Command | Persona | Description |
-|---------|---------|-------------|
-| `/ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
-| `/plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
-| `/resume [slug]` | — | Resume interrupted execution from where you left off |
-| `/review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
-| `/qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
-| `/retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
+| Skill | Persona | Description |
+|-------|---------|-------------|
+| `/hamster:ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
+| `/hamster:plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
+| `/hamster:resume [slug]` | — | Resume interrupted execution from where you left off |
+| `/hamster:review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
+| `/hamster:qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
+| `/hamster:retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
 
-#### `/ship`
+#### `/hamster:ship`
 
 The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 ```
-/ship user-authentication
-/ship https://tryhamster.com/home/hamster/briefs/2de8d546-50ab-4dbd-a678-579ec8119f60
+/hamster:ship user-authentication
+/hamster:ship https://tryhamster.com/home/hamster/briefs/2de8d546-50ab-4dbd-a678-579ec8119f60
 ```
 
 If no argument is given, presents an interactive picker of actionable briefs.
 
 **Flow**: Prerequisites check → Brief selection → Analysis (with user confirmation) → Branch creation → Merge base branch → Parallel wave execution (implement → validate → test gate → review → bisectable commits) → Final validation → Ask about PR creation
 
-#### `/plan`
+#### `/hamster:plan`
 
 Read-only analysis with optional deep review. Produces the execution plan without making changes.
 
 ```
-/plan api-rate-limiting
+/hamster:plan api-rate-limiting
 ```
 
 After analysis, choose a review mode:
@@ -112,16 +112,16 @@ After analysis, choose a review mode:
 - **Eng Review (Architecture Mode)** — 4-section technical review with ASCII diagrams and test plan
 - **Quick Analysis** — Just the plan
 
-#### `/resume`
+#### `/hamster:resume`
 
 Resumes an interrupted execution. Auto-detects the brief from the git branch name (`feature/ham-{id}-{slug}`), in-progress tasks, or a provided argument.
 
 ```
-/resume
-/resume user-authentication
+/hamster:resume
+/hamster:resume user-authentication
 ```
 
-#### `/review`
+#### `/hamster:review`
 
 Paranoid two-pass code review for the current feature branch:
 - **Pass 1 (CRITICAL)**: SQL safety, race conditions, auth boundaries, enum completeness, secrets
@@ -129,31 +129,31 @@ Paranoid two-pass code review for the current feature branch:
 - Interactive resolution for critical findings with fix/acknowledge/false-positive options
 
 ```
-/review
+/hamster:review
 ```
 
-#### `/qa`
+#### `/hamster:qa`
 
 Systematic testing with 4 modes:
 
 ```
-/qa diff        # Test only what changed (default on feature branches)
-/qa full        # Full test suite with coverage
-/qa quick       # 30-second lint + typecheck + smoke tests
-/qa regression  # Changed files + dependents, flag new failures
+/hamster:qa diff        # Test only what changed (default on feature branches)
+/hamster:qa full        # Full test suite with coverage
+/hamster:qa quick       # 30-second lint + typecheck + smoke tests
+/hamster:qa regression  # Changed files + dependents, flag new failures
 ```
 
 Includes issue taxonomy (functional/type-safety/integration/performance/coverage-gap) and optional fix loop.
 
-#### `/retro`
+#### `/hamster:retro`
 
 Engineering retrospective from git history:
 
 ```
-/retro          # Last 7 days (default)
-/retro 14       # Last 14 days
-/retro 30       # Last 30 days
-/retro 24h      # Last 24 hours
+/hamster:retro          # Last 7 days (default)
+/hamster:retro 14       # Last 14 days
+/hamster:retro 30       # Last 30 days
+/hamster:retro 24h      # Last 24 hours
 ```
 
 Produces: metrics table, hourly distribution, session analysis, hotspots, PR sizes, per-contributor deep dive with praise and growth suggestions, trends vs last retro, and a narrative summary.
