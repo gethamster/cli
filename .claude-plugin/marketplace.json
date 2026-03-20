@@ -8,10 +8,15 @@
   "plugins": [
     {
       "name": "hamster",
-      "description": "Orchestrates Hamster Studio brief execution using specialized agents",
+      "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes",
+      "version": "2.0.0",
       "source": "./",
       "category": "workflow",
-      "homepage": "https://github.com/gethamster/cli"
+      "homepage": "https://github.com/gethamster/cli",
+      "author": {
+        "name": "Hamster",
+        "email": "hello@tryhamster.com"
+      }
     }
   ]
 }
