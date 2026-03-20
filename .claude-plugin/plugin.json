@@ -1,6 +1,6 @@
 {
   "name": "hamster",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes. Ship, plan, review, QA, and retro — all from Claude Code.",
   "author": {
     "name": "Hamster",
