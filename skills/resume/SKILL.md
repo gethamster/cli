@@ -1,7 +1,6 @@
 ---
-description: "Resume an interrupted brief execution: auto-detect progress, reconstruct state from git history and task statuses, and continue from the correct wave"
-argument-hint: "[brief-slug]"
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "Edit", "Agent", "LSP", "AskUserQuestion"]
+name: resume
+description: "Resume an interrupted brief execution: auto-detect progress, reconstruct state from git history and task statuses, and continue from the correct wave. Use when the user wants to continue a previously interrupted /ship session."
 ---
 
 # Resume Brief Execution

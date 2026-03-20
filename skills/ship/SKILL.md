@@ -1,7 +1,6 @@
 ---
-description: "Ship a Hamster Studio brief: merge base, implement in parallel waves, test, review, create bisectable commits, and optionally PR"
-argument-hint: "[brief-slug-or-url]"
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "Edit", "Agent", "LSP", "AskUserQuestion"]
+name: ship
+description: "Ship a Hamster Studio brief: merge base, implement in parallel waves, test, review, create bisectable commits, and optionally PR. Use when the user wants to execute a brief."
 ---
 
 # Ship Brief

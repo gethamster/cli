@@ -1,7 +1,6 @@
 ---
-description: "Plan a Hamster Studio brief: read tasks, build dependency graph, detect parallel execution waves, with optional CEO or Eng review modes"
-argument-hint: "[brief-slug-or-url]"
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Agent", "AskUserQuestion"]
+name: plan
+description: "Plan a Hamster Studio brief: read tasks, build dependency graph, detect parallel execution waves, with optional CEO or Eng review modes. Use when the user wants to analyze a brief before executing."
 ---
 
 # Plan Brief

@@ -1,7 +1,6 @@
 ---
-description: "Systematic QA: diff-aware, full suite, quick smoke, or regression testing with issue taxonomy and optional fix loop"
-argument-hint: "[mode: diff|full|quick|regression]"
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "Edit", "Agent", "AskUserQuestion"]
+name: qa
+description: "Systematic QA: diff-aware, full suite, quick smoke, or regression testing with issue taxonomy and optional fix loop. Use when the user wants to run tests or check quality on their changes."
 ---
 
 # QA
