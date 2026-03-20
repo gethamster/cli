@@ -1,12 +1,12 @@
 ---
-description: "Orchestrates full parallel wave execution of a Hamster Studio brief using specialized agents. Reads briefs/tasks from `.hamster/`, plans parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each wave."
+description: "Ship a Hamster Studio brief: merge base, implement in parallel waves, test, review, create bisectable commits, and optionally PR"
 argument-hint: "[brief-slug-or-url]"
 allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "Edit", "Agent", "LSP", "AskUserQuestion"]
 ---
 
-# Execute Hamster Brief
+# Ship Brief
 
-Orchestrates the full execution of a Hamster Studio brief using specialized agents. Reads briefs/tasks from `.hamster/`, plans parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each wave.
+Orchestrates the full execution of a Hamster Studio brief using specialized agents. Reads briefs/tasks from `.hamster/`, plans parallel execution waves, merges base branch, dispatches independent parent tasks simultaneously, gates on tests, reviews and simplifies code, creates bisectable commits, and optionally creates a PR.
 
 **Argument**: "$ARGUMENTS"
 
@@ -170,6 +170,24 @@ echo "Created branch: $branch"
 
 ---
 
+## Merge Base Branch
+
+Before starting execution, merge the latest base branch to catch conflicts early:
+
+```bash
+# Detect the default branch
+default_branch=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "main")
+
+# Fetch and merge
+git fetch origin "$default_branch"
+git merge "origin/$default_branch" --no-edit
+```
+
+- If merge conflict → **STOP**, report the conflicts to the user, do NOT auto-resolve
+- If clean merge → continue to execution
+
+---
+
 ## Execution Loop
 
 Process tasks in the parallel waves determined by the brief-planner.
@@ -215,7 +233,27 @@ After ALL executors complete, run project validation ONCE:
 
 If validation fails: fix the errors before proceeding. This may require using Edit directly for type errors, or re-launching a task-executor with the specific fix.
 
-#### Step 3: Parallel Quality Gates
+#### Step 3: Test Gate
+
+After validation passes, run the project's test suite for affected areas:
+
+```bash
+# Detect tooling and run tests
+if [ -f "package.json" ]; then
+  if command -v pnpm >/dev/null; then pnpm test 2>/dev/null
+  elif command -v yarn >/dev/null; then yarn test 2>/dev/null
+  elif command -v npm >/dev/null; then npm test 2>/dev/null
+  fi
+elif [ -f "Cargo.toml" ]; then cargo test 2>/dev/null
+elif [ -f "go.mod" ]; then go test ./... 2>/dev/null
+elif [ -f "Makefile" ]; then make test 2>/dev/null
+fi
+```
+
+- If tests **FAIL** → STOP, report the failures to the user, ask whether to fix or skip
+- If tests **PASS** → proceed to quality gates
+
+#### Step 4: Parallel Quality Gates
 
 **Launch ALL quality-gate agents for this wave simultaneously in a single turn (parallel Agent calls).**
 
@@ -229,7 +267,7 @@ For each parent in this wave, launch a **quality-gate** agent with:
 
 Wait for ALL quality-gate agents to complete.
 
-#### Step 4: Handle Quality Gate Results
+#### Step 5: Handle Quality Gate Results
 
 For each quality-gate result:
 
@@ -243,9 +281,20 @@ For each quality-gate result:
 
 **If PASS**: the quality-gate may have made simplification changes. Those are already in the working tree.
 
-#### Step 5: Commit Wave
+#### Step 6: Commit Wave (Bisectable Commits)
 
 For each parent in this wave (sequentially — commits are serial for git safety):
+
+When a parent task has changes across multiple concerns, split into logical commits ordered for bisectability:
+1. **Infrastructure/config** changes (migrations, env vars, dependencies)
+2. **Models/types** (schemas, interfaces, type definitions)
+3. **Services/logic** (business logic, API handlers, utilities)
+4. **Controllers/views** (routes, UI components, templates)
+5. **Tests** (unit tests, integration tests)
+
+Each commit should be independently buildable. Never mix concerns (e.g., migration + UI change in one commit).
+
+If a parent task's changes are small or cohesive (single concern), a single commit is fine:
 
 ```bash
 # Stage specific files only (all files changed by executor + any simplification changes)
@@ -281,7 +330,9 @@ Brief: {brief-slug}"
 **NEVER use `git add .` or `git add -A`** — always stage specific files.
 If any pre-commit hook fails: read the error, fix the issue, create a new commit (never `--no-verify`).
 
-#### Step 6: Wave Progress Report
+**Non-interactive by default**: Auto-include all unstaged changes for the parent task, auto-split commits for bisectability. Only stop for: merge conflicts, test failures, CRITICAL review findings, agent failures.
+
+#### Step 7: Wave Progress Report
 
 After each wave completes, report progress:
 ```
@@ -323,11 +374,22 @@ Run whatever validation the project uses. Detect the project's tooling and run a
 If tests are configured for the affected areas, run the project's test command.
 
 ### Create PR
-Launch **commit-manager** agent with operation: **Push and Create PR**
-- Brief title (from brief.md frontmatter)
-- Brief slug
-- Complete task list with display IDs and titles
-- Summary of all changes made across all waves
+
+Use AskUserQuestion to ask the user:
+- "Create a PR?" with options: "Yes, create PR", "No, I'll do it later"
+
+If yes:
+1. Detect default branch:
+   ```bash
+   default_branch=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "main")
+   ```
+2. Push: `git push -u origin HEAD`
+3. Launch **commit-manager** agent with operation: **Push and Create PR**
+   - Brief title (from brief.md frontmatter)
+   - Brief slug
+   - Complete task list with display IDs and titles
+   - Summary of all changes made across all waves
+   - Target branch: `$default_branch`
 
 ### Update Brief Status
 
@@ -342,7 +404,7 @@ Brief execution complete!
 
   Brief: {title}
   Branch: feature/ham-{id}-{slug}
-  PR: {PR URL}
+  PR: {PR URL or "skipped"}
   Tasks completed: {n}/{total}
   Waves executed: {n}
   Commits: {total commits}
@@ -361,7 +423,9 @@ Brief execution complete!
 | `.hamster/` missing | Stop — tell user to run `hamster sync` |
 | Brief not found | Search for partial matches, suggest closest |
 | Auth expired | Run `hamster auth login`, continue without status updates |
+| Base branch merge conflict | Stop, report conflicts to user, do NOT auto-resolve |
 | Wave validation fails | Fix errors before proceeding to quality gates |
+| Test gate fails | Stop, report failures, ask user to fix or skip |
 | Parallel executor conflict: two executors modified the same file | Stop, report conflict to user, ask for guidance |
 | Quality gate NEEDS_FIXES after 2 rounds | Report issues to user, ask whether to skip or fix manually |
 | Git conflict | Report to user, pause execution |
@@ -374,8 +438,9 @@ Brief execution complete!
 ## Notes
 
 - Each parent task gets its own commit(s) for clean git history (subtasks are NOT committed individually)
+- Commits are split by concern for bisectability when changes span multiple areas
 - Review and simplification handled by quality-gate agent (merged into one session)
 - Parent tasks in the same wave execute in parallel for performance
-- The user can interrupt at any time — use `/hamster:resume` to continue
+- The user can interrupt at any time — use `/resume` to continue
 - Prefer a single PR for the entire brief unless it grows too large
 - If the brief is very large (>15 tasks), confirm with user whether to split into multiple PRs

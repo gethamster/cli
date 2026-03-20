@@ -75,34 +75,42 @@ In Claude Code:
 /plugin install hamster@gethamster-cli
 ```
 
-### Plugin commands
+### Plugin skills
 
-| Command | Description |
-|---------|-------------|
-| `/hamster:execute [slug-or-url]` | Full brief execution: plan waves, implement in parallel, review, commit per parent, PR |
-| `/hamster:analyze [slug-or-url]` | Read-only analysis: dependency graph, parallel wave visualization, risk assessment |
-| `/hamster:resume [slug]` | Resume interrupted execution from where you left off |
+| Skill | Persona | Description |
+|-------|---------|-------------|
+| `/hamster:ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
+| `/hamster:plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
+| `/hamster:resume [slug]` | — | Resume interrupted execution from where you left off |
+| `/hamster:review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
+| `/hamster:qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
+| `/hamster:retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
 
-#### `/hamster:execute`
+#### `/hamster:ship`
 
 The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 ```
-/hamster:execute user-authentication
-/hamster:execute https://tryhamster.com/home/hamster/briefs/2de8d546-50ab-4dbd-a678-579ec8119f60
+/hamster:ship user-authentication
+/hamster:ship https://tryhamster.com/home/hamster/briefs/2de8d546-50ab-4dbd-a678-579ec8119f60
 ```
 
 If no argument is given, presents an interactive picker of actionable briefs.
 
-**Flow**: Prerequisites check -> Brief selection -> Analysis (with user confirmation) -> Branch creation -> Parallel wave execution (implement -> validate -> review -> commit per parent) -> Final validation -> PR creation
+**Flow**: Prerequisites check → Brief selection → Analysis (with user confirmation) → Branch creation → Merge base branch → Parallel wave execution (implement → validate → test gate → review → bisectable commits) → Final validation → Ask about PR creation
 
-#### `/hamster:analyze`
+#### `/hamster:plan`
 
-Read-only analysis. Produces the execution plan without making changes. Useful for reviewing scope before committing to execution.
+Read-only analysis with optional deep review. Produces the execution plan without making changes.
 
 ```
-/hamster:analyze api-rate-limiting
+/hamster:plan api-rate-limiting
 ```
+
+After analysis, choose a review mode:
+- **CEO Review (Founder Mode)** — 10-section deep dive from first principles
+- **Eng Review (Architecture Mode)** — 4-section technical review with ASCII diagrams and test plan
+- **Quick Analysis** — Just the plan
 
 #### `/hamster:resume`
 
@@ -113,14 +121,51 @@ Resumes an interrupted execution. Auto-detects the brief from the git branch nam
 /hamster:resume user-authentication
 ```
 
+#### `/hamster:review`
+
+Paranoid two-pass code review for the current feature branch:
+- **Pass 1 (CRITICAL)**: SQL safety, race conditions, auth boundaries, enum completeness, secrets
+- **Pass 2 (INFORMATIONAL)**: Side effects, magic numbers, dead code, test gaps, type coercion, time safety
+- Interactive resolution for critical findings with fix/acknowledge/false-positive options
+
+```
+/hamster:review
+```
+
+#### `/hamster:qa`
+
+Systematic testing with 4 modes:
+
+```
+/hamster:qa diff        # Test only what changed (default on feature branches)
+/hamster:qa full        # Full test suite with coverage
+/hamster:qa quick       # 30-second lint + typecheck + smoke tests
+/hamster:qa regression  # Changed files + dependents, flag new failures
+```
+
+Includes issue taxonomy (functional/type-safety/integration/performance/coverage-gap) and optional fix loop.
+
+#### `/hamster:retro`
+
+Engineering retrospective from git history:
+
+```
+/hamster:retro          # Last 7 days (default)
+/hamster:retro 14       # Last 14 days
+/hamster:retro 30       # Last 30 days
+/hamster:retro 24h      # Last 24 hours
+```
+
+Produces: metrics table, hourly distribution, session analysis, hotspots, PR sizes, per-contributor deep dive with praise and growth suggestions, trends vs last retro, and a narrative summary.
+
 ### Agents
 
-| Agent | Model | Purpose |
-|-------|-------|---------|
-| **brief-planner** | Sonnet | Reads brief + tasks, builds dependency graph, groups parents into parallel execution waves |
-| **task-executor** | Opus | Implements all subtasks of a parent task in one session using JIT context discovery |
-| **quality-gate** | Sonnet | Reviews code quality and applies simplifications (merged review + simplify) |
-| **commit-manager** | Sonnet | Branch creation and PR creation only |
+| Agent | Persona | Model | Purpose |
+|-------|---------|-------|---------|
+| **brief-planner** | Tech Lead | Sonnet | Strategic dependency analysis and wave planning |
+| **task-executor** | Senior Engineer | Opus | Clean, production-quality implementation with 4-path data flow thinking |
+| **quality-gate** | Staff Engineer | Sonnet | Paranoid review and surgical simplification |
+| **commit-manager** | Release Engineer | Sonnet | Git hygiene, branch creation, and PR creation |
 
 ### Execution loop
 
@@ -132,17 +177,19 @@ Wave N (parallel):
 
 Post-wave:
   Validation (typecheck/lint)
+  Test gate (stop on failure)
   [quality-gate A] || [quality-gate B] || [quality-gate C]
-  Orchestrator commits per parent (direct bash)
+  Bisectable commits per parent (direct bash)
 ```
 
 ### Git conventions
 
 - **Branch**: `feature/ham-{lowest-id}-{brief-slug}`
-- **Parent task commits**: `feat(ham-123): concise description`
+- **Parent task commits**: `feat(ham-123): concise description` (split by concern for bisectability)
 - **Simplification commits**: `refactor(ham-123): simplify description`
 - **Review fix commits**: `fix(ham-123): address review findings`
-- **PR**: Includes task checklist, changes summary, and test plan
+- **QA fix commits**: `fix(qa): test-file — description`
+- **PR**: Created on request (not auto-created), targets detected default branch
 
 ---
 

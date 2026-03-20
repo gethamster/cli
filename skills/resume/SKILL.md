@@ -6,7 +6,7 @@ allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "Edit", "Agent", "LSP",
 
 # Resume Brief Execution
 
-Resumes an interrupted `/hamster:execute` session. Auto-detects the brief from git branch name or in-progress tasks, reconstructs execution state from task statuses, git log, and git status (no state file needed), then continues from the correct wave.
+Resumes an interrupted `/ship` session. Auto-detects the brief from git branch name or in-progress tasks, reconstructs execution state from task statuses, git log, and git status (no state file needed), then continues from the correct wave.
 
 **Argument**: "$ARGUMENTS"
 
@@ -64,7 +64,7 @@ If multiple briefs have in-progress tasks, use AskUserQuestion to let the user c
 
 **Method D — None found**:
 - Tell the user no interrupted execution was detected
-- Suggest running `/hamster:analyze` to pick a brief, or `/hamster:execute` to start fresh
+- Suggest running `/plan` to pick a brief, or `/ship` to start fresh
 
 ---
 
@@ -152,7 +152,7 @@ If "Start from a different task": ask which task display ID to start from.
 
 ## Continue Execution
 
-Once confirmed, continue the execution loop from `/hamster:execute`, starting from the determined resume wave and position.
+Once confirmed, continue the execution loop from `/ship`, starting from the determined resume wave and position.
 
 ### Check Branch
 
@@ -162,7 +162,7 @@ Verify we're on the correct feature branch:
 
 ### Resume Loop
 
-Continue the wave-based execution loop exactly as in `/hamster:execute` Steps 1-6, starting from the resume wave:
+Continue the wave-based execution loop exactly as in `/ship` Steps 1-7, starting from the resume wave:
 
 **For each remaining wave (starting from the resume wave):**
 
@@ -242,12 +242,15 @@ Remaining: {n} waves, {n} parent tasks
 
 ### Completion
 
-Stop live sync, then same as `/hamster:execute`:
+Stop live sync, then same as `/ship`:
 ```bash
 [ -n "$HAMSTER_SYNC_PID" ] && kill "$HAMSTER_SYNC_PID" 2>/dev/null && echo "Live sync stopped"
 ```
 1. Final validation (project checks)
-2. Push and create PR (or update existing PR)
+2. Check if PR already exists for this branch:
+   - If PR exists: push new commits, report existing PR URL
+   - If no PR: Use AskUserQuestion: "Create a PR?" with options: "Yes, create PR", "No, I'll do it later"
+   - If yes: detect default branch, push, launch commit-manager with target branch
 3. Update brief status
 4. Final report
 
