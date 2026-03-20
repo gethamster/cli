@@ -1,6 +1,8 @@
 ---
 name: retro
 description: "Engineering retrospective: git history analysis, team metrics, contributor deep-dives, trends, and actionable insights. Use when the user wants a retrospective on recent development activity."
+argument-hint: "[days: 7|14|30|24h]"
+allowed-tools: ["Bash", "Glob", "Grep", "Read", "Write", "AskUserQuestion"]
 ---
 
 # Retro

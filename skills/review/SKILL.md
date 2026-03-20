@@ -1,6 +1,7 @@
 ---
 name: review
 description: "Paranoid two-pass code review: CRITICAL issues that block shipping, then INFORMATIONAL advisory findings. Interactive resolution for critical issues. Use when the user wants a code review on their current feature branch."
+allowed-tools: ["Bash", "Glob", "Grep", "Read", "Edit", "Agent", "AskUserQuestion"]
 ---
 
 # Code Review
