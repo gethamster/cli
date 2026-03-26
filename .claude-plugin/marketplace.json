@@ -1,5 +1,8 @@
 {
   "name": "hamster-plugins",
+  "metadata": {
+    "description": "Claude Code plugins for Hamster Studio"
+  },
   "owner": {
     "name": "Hamster",
     "email": "hello@tryhamster.com"
@@ -25,12 +28,7 @@
         "ai-workflow",
         "workflow-automation"
       ],
-      "tags": [
-        "planning",
-        "parallel-execution",
-        "code-review",
-        "git"
-      ]
+      "tags": ["planning", "parallel-execution", "code-review", "git"]
     }
   ]
 }
