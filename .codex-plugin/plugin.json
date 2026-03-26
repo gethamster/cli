@@ -1,0 +1,30 @@
+{
+  "name": "hamster",
+  "version": "2.2.0",
+  "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes. Ship, plan, review, QA, and retro.",
+  "author": {
+    "name": "Hamster",
+    "email": "hello@tryhamster.com"
+  },
+  "homepage": "https://tryhamster.com",
+  "repository": "https://github.com/gethamster/cli",
+  "license": "Proprietary",
+  "logo": "assets/logo.svg",
+  "keywords": [
+    "hamster",
+    "brief-execution",
+    "task-orchestration",
+    "ai-workflow",
+    "workflow-automation"
+  ],
+  "category": "workflow",
+  "tags": [
+    "planning",
+    "parallel-execution",
+    "code-review",
+    "git"
+  ],
+  "agents": "agents",
+  "commands": "commands",
+  "skills": ".claude/skills/hamster-project-context"
+}

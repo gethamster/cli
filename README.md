@@ -75,6 +75,34 @@ In Claude Code:
 /plugin install hamster@gethamster-cli
 ```
 
+### Cursor and Codex plugin packaging
+
+This repository also includes first-class plugin manifests for:
+
+- Cursor: `.cursor-plugin/plugin.json` and `.cursor-plugin/marketplace.json`
+- Codex-compatible hosts: `.codex-plugin/plugin.json` and `.codex-plugin/marketplace.json`
+
+These manifests include listing metadata (`version`, `author`, `homepage`, `repository`, `license`, `keywords`, `category`, `tags`) plus component paths (`agents`, `commands`, `skills`) and a shared logo (`assets/logo.svg`).
+
+Cursor publish URL:
+
+```bash
+# Submit for review/public listing
+# https://cursor.com/marketplace/publish
+```
+
+Codex note:
+
+- OpenAI Codex CLI currently does not document a public plugin marketplace submission endpoint.
+- Use direct repository distribution and consume `.codex-plugin/plugin.json` in your Codex host/runtime integration.
+
+Codex local install helper:
+
+```bash
+./scripts/install-codex-plugin.sh        # symlink mode (default)
+./scripts/install-codex-plugin.sh copy   # copy mode
+```
+
 ### Plugin skills
 
 | Skill | Persona | Description |
