@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Hamster logo">
+  <rect width="256" height="256" rx="48" fill="#111827"/>
+  <circle cx="128" cy="132" r="74" fill="#F59E0B"/>
+  <circle cx="98" cy="110" r="14" fill="#1F2937"/>
+  <circle cx="158" cy="110" r="14" fill="#1F2937"/>
+  <ellipse cx="128" cy="146" rx="16" ry="12" fill="#1F2937"/>
+  <path d="M92 168c12 12 24 18 36 18s24-6 36-18" fill="none" stroke="#1F2937" stroke-width="10" stroke-linecap="round"/>
+</svg>
