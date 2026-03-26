@@ -1,7 +1,8 @@
 {
   "name": "hamster-plugins",
-  "version": "2.2.0",
-  "description": "Claude Code plugins for Hamster Studio",
+  "metadata": {
+    "description": "Claude Code plugins for Hamster Studio"
+  },
   "owner": {
     "name": "Hamster",
     "email": "hello@tryhamster.com"
@@ -20,7 +21,6 @@
         "email": "hello@tryhamster.com"
       },
       "license": "Proprietary",
-      "logo": "assets/logo.svg",
       "keywords": [
         "hamster",
         "brief-execution",
@@ -28,12 +28,7 @@
         "ai-workflow",
         "workflow-automation"
       ],
-      "tags": [
-        "planning",
-        "parallel-execution",
-        "code-review",
-        "git"
-      ]
+      "tags": ["planning", "parallel-execution", "code-review", "git"]
     }
   ]
 }
