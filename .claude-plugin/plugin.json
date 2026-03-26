@@ -10,7 +10,13 @@
   "repository": "https://github.com/gethamster/cli",
   "license": "Proprietary",
   "logo": "assets/logo.svg",
-  "keywords": ["hamster", "brief-execution", "task-orchestration", "ai-workflow", "workflow-automation"],
+  "keywords": [
+    "hamster",
+    "brief-execution",
+    "task-orchestration",
+    "ai-workflow",
+    "workflow-automation"
+  ],
   "category": "workflow",
   "tags": ["planning", "parallel-execution", "code-review", "git"],
   "agents": "agents",
