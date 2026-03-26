@@ -15,8 +15,5 @@
     "task-orchestration",
     "ai-workflow",
     "workflow-automation"
-  ],
-  "agents": "agents",
-  "commands": "commands",
-  "skills": ".claude/skills/hamster-project-context"
+  ]
 }

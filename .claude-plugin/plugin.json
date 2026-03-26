@@ -18,8 +18,5 @@
     "workflow-automation"
   ],
   "category": "workflow",
-  "tags": ["planning", "parallel-execution", "code-review", "git"],
-  "agents": "agents",
-  "commands": "commands",
-  "skills": ".claude/skills/hamster-project-context"
+  "tags": ["planning", "parallel-execution", "code-review", "git"]
 }
