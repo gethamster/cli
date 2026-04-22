@@ -58,6 +58,11 @@ Read ALL of them upfront to understand the full scope before making any changes.
 hamster task status {PARENT-DISPLAY-ID} in_progress
 ```
 
+**CLI syntax**: `hamster task status` takes **two positional arguments** — `<display-id>` and `<status>`. Do NOT use `--id=` or `--status=` flags; the CLI will reject them with `unknown flag: --id`. Run `hamster task status --help` if you need to check the current accepted statuses.
+
+Correct: `hamster task status HAM-123 done`
+Wrong:   `hamster task status --id=HAM-123 --status=done`
+
 If this fails due to auth issues, log the failure and continue — do not block implementation on status updates.
 
 ### Step 3: JIT Context Discovery
