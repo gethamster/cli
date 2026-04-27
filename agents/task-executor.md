@@ -40,11 +40,11 @@ For each file, extract title, description, instructions, and acceptance criteria
 tasks_dir=".hamster/${account}/briefs/${slug}/tasks"
 for f in "$tasks_dir"/{PARENT-DISPLAY-ID}-*.md "$tasks_dir"/{SUBTASK-DISPLAY-ID}-*.md; do
   [ -f "$f" ] || continue
-  awk '
+  awk -F'"' '
     /^---$/ { n++; next }
-    n == 1 && /^display_id:/ { gsub(/["'"'"']/, "", $2); did=$2 }
-    n == 1 && /^title:/ { sub(/^title: *"?/, ""); sub(/"$/, ""); t=$0 }
-    n == 1 && /^status:/ { gsub(/["'"'"']/, "", $2); s=$2 }
+    n == 1 && /^display_id:/ { did = $2 }
+    n == 1 && /^title:/ { t = $2 }
+    n == 1 && /^status:/ { s = $2 }
     n == 2 { print did "|" t "|" s; exit }
   ' "$f"
 done

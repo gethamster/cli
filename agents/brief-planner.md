@@ -66,13 +66,13 @@ Then read the full markdown body for description and goals.
 tasks_dir=".hamster/${account}/briefs/${slug}/tasks"
 for f in "$tasks_dir"/*.md; do
   [ -f "$f" ] || continue
-  awk '
+  awk -F'"' '
     /^---$/ { n++; next }
-    n == 1 && /^display_id:/ { gsub(/["'"'"']/, "", $2); did=$2 }
-    n == 1 && /^entity_id:/ { gsub(/["'"'"']/, "", $2); eid=$2 }
-    n == 1 && /^parent_task_id:/ { gsub(/["'"'"']/, "", $2); pid=$2 }
-    n == 1 && /^title:/ { sub(/^title: *"?/, ""); sub(/"$/, ""); t=$0 }
-    n == 1 && /^status:/ { gsub(/["'"'"']/, "", $2); s=$2 }
+    n == 1 && /^display_id:/ { did = $2 }
+    n == 1 && /^entity_id:/ { eid = $2 }
+    n == 1 && /^parent_task_id:/ { pid = $2 }
+    n == 1 && /^title:/ { t = $2 }
+    n == 1 && /^status:/ { s = $2 }
     n == 2 { print did "|" eid "|" pid "|" t "|" s; exit }
   ' "$f"
 done | sort -t'|' -k1,1

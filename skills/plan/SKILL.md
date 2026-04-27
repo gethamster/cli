@@ -41,7 +41,7 @@ if echo "$identifier" | grep -qE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
   for brief_dir in .hamster/${account}/briefs/*/; do
     bf="${brief_dir}brief.md"
     [ -f "$bf" ] || continue
-    eid=$(awk '/^---$/{n++; next} n==1 && /^entity_id:/{gsub(/["'"'"']/, "", $2); print $2; exit}' "$bf")
+    eid=$(awk -F'"' '/^---$/{n++; next} n==1 && /^entity_id:/ { print $2; exit }' "$bf")
     if [ "$eid" = "$identifier" ]; then
       slug=$(basename "$brief_dir")
       break
@@ -69,12 +69,12 @@ for brief_dir in "${briefs_dir}"/*/; do
   [ ! -f "$brief_file" ] && continue
   tasks_dir="${brief_dir}tasks"
   [ ! -d "$tasks_dir" ] && continue
-  brief_status=$(awk '/^---$/{n++; next} n==1 && /^status:/{gsub(/["'"'"']/, "", $2); print $2; exit}' "$brief_file")
+  brief_status=$(awk -F'"' '/^---$/{n++; next} n==1 && /^status:/ { print $2; exit }' "$brief_file")
   case "$brief_status" in aligned|delivering|refining) ;; *) continue ;; esac
   total=$(ls "$tasks_dir"/*.md 2>/dev/null | wc -l | tr -d ' ')
   [ "$total" -eq 0 ] && continue
   done_count=$(grep -l '^status: "done"' "$tasks_dir"/*.md 2>/dev/null | wc -l | tr -d ' ')
-  title=$(awk '/^---$/{n++; next} n==1 && /^title:/{sub(/^title: *"?/, ""); sub(/"$/, ""); print; exit}' "$brief_file")
+  title=$(awk -F'"' '/^---$/{n++; next} n==1 && /^title:/ { print $2; exit }' "$brief_file")
   echo "${brief_status}|${slug}|${title}|${done_count}|${total}"
 done | sort -t'|' -k1,1 | while IFS='|' read -r bstatus bslug btitle bdone btotal; do
   if [ "$bstatus" != "$last_status" ]; then
