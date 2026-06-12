@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Cursor plugins for Hamster Studio",
-    "version": "2.2.0"
+    "version": "3.0.0"
   },
   "plugins": [
     {
       "name": "hamster",
       "source": ".",
       "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes",
-      "version": "2.2.0",
+      "version": "3.0.0",
       "author": {
         "name": "Hamster",
         "email": "hello@tryhamster.com"
