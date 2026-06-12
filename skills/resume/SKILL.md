@@ -4,7 +4,7 @@ description: Resume an interrupted brief execution. Auto-detect progress, recons
 
 # Resume Brief Execution
 
-Resumes an interrupted `/ship` session. Auto-detects the brief from git branch name or in-progress tasks, reconstructs execution state from task statuses, git log, and git status (no state file needed), then continues from the correct wave.
+Resumes an interrupted `/ship` session. Auto-detects the brief from git branch name or in-progress tasks, reconstructs execution state from task statuses, git log, and git status (no state file needed), then continues from the correct wave. Like `/ship`, this is **execution-only**: it resumes running the pre-generated plan in `.hamster/` and never generates plans or elaborates tasks.
 
 **Argument**: "$ARGUMENTS"
 

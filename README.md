@@ -64,7 +64,7 @@ A [Claude skill](https://docs.anthropic.com/en/docs/claude-code/skills) is also 
 
 ## hamster — Claude Code Plugin
 
-This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. It reads briefs and tasks from `.hamster/`, plans parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each parent task.
+This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. The plugin is **execution-only**: it consumes the pre-generated plan synced into `.hamster/` and runs it. It reads briefs and tasks from `.hamster/`, schedules the existing tasks into parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each parent task. It does **not** generate plans or elaborate tasks — that work happens upstream in Hamster Studio (run `hamster sync <BRIEF>` to pull the plan) and is consumed here without deviation, matching the Pi harness model.
 
 ### Plugin install
 
@@ -116,7 +116,7 @@ Codex local install helper:
 
 #### `/hamster:ship`
 
-The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
+The main orchestrator — execution-only. It loads the pre-generated plan from `.hamster/` (via `hamster sync`) and executes it without generating or elaborating tasks. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 ```
 /hamster:ship user-authentication
@@ -125,7 +125,7 @@ The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 If no argument is given, presents an interactive picker of actionable briefs.
 
-**Flow**: Prerequisites check → Brief selection → Analysis (with user confirmation) → Branch creation → Merge base branch → Parallel wave execution (implement → validate → test gate → review → bisectable commits) → Final validation → Ask about PR creation
+**Flow**: Prerequisites check → Brief selection → `hamster sync` (load pre-generated plan into `.hamster/`) → Scheduling of existing tasks (with user confirmation) → Branch creation → Merge base branch → Parallel wave execution (implement → validate → test gate → review → bisectable commits) → Final validation → Ask about PR creation. No plan generation or task elaboration occurs at any step.
 
 #### `/hamster:plan`
 

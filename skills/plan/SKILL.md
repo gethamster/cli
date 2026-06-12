@@ -288,7 +288,7 @@ Use AskUserQuestion:
 
 ## Notes
 
-- This command makes NO code changes, NO git operations, NO status updates
+- This command makes NO code changes, NO git operations, NO status updates, and NO task creation or elaboration — it only reads and analyzes the pre-generated plan in `.hamster/`
 - Safe to run repeatedly to understand brief scope
 - Useful for reviewing a brief before committing to execution
 - CEO Review is best for high-stakes briefs; Eng Review is best for locking in architecture

@@ -4,9 +4,22 @@ description: Ship a Hamster Studio brief. Merge base, implement in parallel wave
 
 # Ship Brief
 
-Orchestrates the full execution of a Hamster Studio brief using specialized agents. Reads briefs/tasks from `.hamster/`, plans parallel execution waves, merges base branch, dispatches independent parent tasks simultaneously, gates on tests, reviews and simplifies code, creates bisectable commits, and optionally creates a PR.
+Orchestrates the full execution of a Hamster Studio brief using specialized agents. **This skill is execution-only**: it consumes the pre-generated plan from `.hamster/`, schedules the existing tasks into parallel execution waves, merges base branch, dispatches independent parent tasks simultaneously, gates on tests, reviews and simplifies code, creates bisectable commits, and optionally creates a PR. It never generates plans or elaborates tasks — that work is done upstream in Hamster Studio and synced to `.hamster/`.
 
 **Argument**: "$ARGUMENTS"
+
+---
+
+## Execution-only model — do NOT replan
+
+This skill follows the same pre-generated plan as the Pi harness. It consumes plans; it does not produce them.
+
+- The plan has ALREADY been generated upstream and synced into `.hamster/`. Do NOT create new tasks.
+- Do NOT elaborate parent tasks into subtasks — subtasks already exist in `.hamster/`.
+- Do NOT search a knowledge graph or load skills for planning purposes.
+- Wave scheduling (via the brief-planner agent) only organizes the tasks that already exist into a parallel execution order — it never invents, splits, or rewrites tasks.
+- If a task seems unclear, implement it as written. Do not replan.
+- `.hamster/` is populated by `hamster sync <BRIEF>`. If it is missing, run `hamster sync <BRIEF>` once (and only once) before starting — never repeatedly during execution.
 
 ---
 
@@ -127,12 +140,14 @@ Present this output to the user and use AskUserQuestion to let them pick a brief
 
 ## Analysis Phase
 
+This phase **schedules the pre-generated tasks** — it reads the tasks already present in `.hamster/` and organizes them into an execution order. It does NOT generate or elaborate tasks.
+
 Launch the **brief-planner** agent with:
 - The resolved brief slug
 - The account slug
 - Project root directory
 
-The planner returns an execution plan with:
+The planner returns an execution schedule (derived entirely from the pre-generated plan) with:
 - Dependency graph (parent/subtask tree)
 - **Parallel Waves** (which parents execute simultaneously)
 - Execution order

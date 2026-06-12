@@ -161,6 +161,7 @@ Produce a summary:
 ## Important Rules
 
 - Implement EXACTLY what the task describes — no more, no less for ALL subtasks assigned
+- Execution-only: the subtasks are pre-generated and synced to `.hamster/`. Never create, split, elaborate, or replan tasks — implement the ones you were given exactly as written
 - Do not add features, refactor surrounding code, or "improve" things beyond scope
 - Do not add docstrings/comments to code you didn't change
 - Do not create unnecessary abstractions for one-time operations
