@@ -16,8 +16,14 @@ One bash call — account, live sync, and all three detection signals:
 
 ```bash
 account=$(ls -d .hamster/*/ 2>/dev/null | head -1 | xargs basename)
-hamster sync --watch > /dev/null 2>&1 &
-echo "account=${account} sync_pid=$!"
+if pgrep -f "hamster sync --watch" >/dev/null 2>&1; then
+  echo "account=${account} sync_pid=existing"
+else
+  hamster sync --watch > /dev/null 2>&1 &
+  echo "account=${account} sync_pid=$!"
+fi
+# sync_pid handling matches /hamster:ship Setup: "existing" → reuse, never kill;
+# numeric → remember the literal number (fresh shell per Bash call)
 # Signal A: current branch
 git branch --show-current
 # Signal B: briefs with in_progress tasks

@@ -23,18 +23,25 @@ which hamster >/dev/null 2>&1 || errors="${errors}hamster CLI not found. Install
 which gh >/dev/null 2>&1 || errors="${errors}gh CLI not found. Install from https://cli.github.com\n"
 dirty=$(git status --porcelain 2>/dev/null | head -5)
 [ -n "$dirty" ] && errors="${errors}Uncommitted changes:\n${dirty}\n"
-if [ -n "$errors" ]; then printf "PREREQ_FAIL:\n$errors"; exit 0; fi
+if [ -n "$errors" ]; then printf "PREREQ_FAIL:\n$errors"; exit 1; fi
 account=$(ls -d .hamster/*/ 2>/dev/null | head -1 | xargs basename)
-hamster sync --watch > /dev/null 2>&1 &
-echo "PREREQ_OK account=${account} sync_pid=$!"
+if pgrep -f "hamster sync --watch" >/dev/null 2>&1; then
+  echo "PREREQ_OK account=${account} sync_pid=existing"
+else
+  hamster sync --watch > /dev/null 2>&1 &
+  echo "PREREQ_OK account=${account} sync_pid=$!"
+fi
 ```
 
 - `PREREQ_FAIL` → show errors and stop (for uncommitted changes only: ask whether to proceed or stash)
-- Remember `sync_pid` to stop live sync at the end
+- `sync_pid=existing` → a watcher is already running (an interrupted session, or the user's own — `pgrep` matches machine-wide, so it may belong to another repo). Reuse it; do NOT kill it at completion
+- Numeric `sync_pid` → remember the literal number. Each Bash call is a fresh shell, so `$sync_pid` does not survive to later calls — at Completion, substitute it literally (e.g. `kill 12345`)
 
 ---
 
 ## Brief Selection
+
+> Referenced by `/hamster:plan` ("run the Brief Selection and Scheduling sections") — keep this section's name and behavior stable.
 
 ### If argument provided:
 
@@ -81,6 +88,8 @@ done | sort -t'|' -k1,1
 ---
 
 ## Scheduling (inline — no planner agent)
+
+> Referenced by `/hamster:plan` and `/hamster:resume` — keep this section's name and behavior stable.
 
 The plan already exists; this step only organizes it into waves. Parse all task frontmatter in one call:
 
@@ -144,6 +153,8 @@ Merge conflict → **STOP**, report conflicts, do NOT auto-resolve.
 
 ## Execution Loop
 
+> Referenced by `/hamster:resume` (re-enters this loop at the resume wave) — keep this section's name and behavior stable. Same applies to Completion below.
+
 For each wave, in order:
 
 ### 1. Parallel Execution
@@ -179,7 +190,7 @@ fi
 
 ### 3. Wave Review
 
-**Fast path**: if the wave diff is small (< ~150 changed lines) AND touches no sensitive areas (auth, payments, migrations, security), review the diff yourself inline against project conventions — no agent needed.
+**Fast path**: if the wave diff is small (< ~150 changed lines) AND touches no sensitive areas, review the diff yourself inline against project conventions — no agent needed. Sensitive areas: auth, payments, migrations, security, CI workflows (`.github/workflows/`), env/secret config files, public API type definitions, and new dependencies (additions to package manifests — version bumps alone don't count).
 
 Otherwise launch ONE **wave-reviewer** agent with: wave number, parent IDs, per-parent file lists, brief context. It returns per-parent PASS/NEEDS_FIXES verdicts and applies simplifications for passing parents.
 
@@ -217,10 +228,10 @@ Non-interactive by default — only stop for: merge conflicts, test failures, cr
 
 ## Completion
 
-One bash call — stop sync, final validation:
+Stop sync, then final validation. Only kill the watcher if YOU started it (numeric `sync_pid` from Setup) — substitute the literal PID; if `sync_pid=existing`, leave it running:
 
 ```bash
-kill "$sync_pid" 2>/dev/null
+kill {literal-sync-pid} 2>/dev/null
 # re-run the wave validation block above for a final full check
 ```
 
