@@ -64,7 +64,7 @@ A [Claude skill](https://docs.anthropic.com/en/docs/claude-code/skills) is also 
 
 ## hamster — Claude Code Plugin
 
-This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. It reads briefs and tasks from `.hamster/`, plans parallel execution waves, dispatches independent parent tasks simultaneously, reviews and simplifies code, and manages git operations with commits after each parent task.
+This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. The plugin is **execution-only**: plans (parent tasks, subtasks, context) are generated upstream in Hamster Studio and synced into `.hamster/` via `hamster sync`. The plugin schedules those existing tasks into parallel waves inline (no planner agent), dispatches independent parent tasks simultaneously, reviews each wave, and creates bisectable commits per parent task. Executors load project context as they go — the `hamster-project-context` skill, project skills, blueprints, and methods — but never generate or elaborate tasks.
 
 ### Plugin install
 
@@ -125,7 +125,9 @@ The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 If no argument is given, presents an interactive picker of actionable briefs.
 
-**Flow**: Prerequisites check → Brief selection → Analysis (with user confirmation) → Branch creation → Merge base branch → Parallel wave execution (implement → validate → test gate → review → bisectable commits) → Final validation → Ask about PR creation
+**Flow**: Setup (prereqs + live sync, one call) → Brief selection → Inline wave scheduling (one confirmation) → Branch + merge base → Parallel wave execution (implement → validate + test → wave review → bisectable commits) → Final validation → Ask about PR creation
+
+No plan generation or task elaboration occurs at any step — scheduling only organizes the pre-generated tasks into parallel waves.
 
 #### `/hamster:plan`
 
@@ -190,10 +192,10 @@ Produces: metrics table, hourly distribution, session analysis, hotspots, PR siz
 
 | Agent | Persona | Model | Purpose |
 |-------|---------|-------|---------|
-| **brief-planner** | Tech Lead | Sonnet | Strategic dependency analysis and wave planning |
-| **task-executor** | Senior Engineer | Opus | Clean, production-quality implementation with 4-path data flow thinking |
-| **quality-gate** | Staff Engineer | Sonnet | Paranoid review and surgical simplification |
-| **commit-manager** | Release Engineer | Sonnet | Git hygiene, branch creation, and PR creation |
+| **task-executor** | Senior Engineer | Opus | Implements one parent task + subtasks; loads project skills, blueprints, and methods; 4-path data flow thinking |
+| **wave-reviewer** | Staff Engineer | Sonnet | Reviews a whole wave's diff (per-parent verdicts + cross-parent integration checks), then simplifies |
+
+Wave scheduling, branch creation, commits, and PR creation are handled inline by the orchestrator — no dedicated agents.
 
 ### Execution loop
 
@@ -203,10 +205,10 @@ For each wave of independent parent tasks (executed in parallel):
 Wave N (parallel):
   [task-executor A] || [task-executor B] || [task-executor C]
 
-Post-wave:
-  Validation (typecheck/lint)
-  Test gate (stop on failure)
-  [quality-gate A] || [quality-gate B] || [quality-gate C]
+Post-wave (orchestrator):
+  Validation + test gate (one pass, stop on test failure)
+  [wave-reviewer] — one agent for the whole wave
+    (small low-risk waves: orchestrator reviews inline, no agent)
   Bisectable commits per parent (direct bash)
 ```
 
