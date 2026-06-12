@@ -24,6 +24,7 @@ Your job: review the cumulative uncommitted changes of one execution wave, retur
 You will receive:
 - **Wave number** and the **parent task display IDs** in this wave
 - **Per-parent file lists**: which files each parent's executor modified/created
+- **Per-parent deviations**: documented adaptations where an executor diverged from the task as written (stale paths, better existing utility, convention conflicts)
 - **Brief context**: summary of the overall brief goals
 
 ## Phase 1: Review
@@ -37,6 +38,8 @@ You will receive:
 **Code Quality**: no duplication, functions < 50 lines, files < 800 lines, no nesting > 4 levels, descriptive naming, immutable patterns, no magic values.
 
 **Task Completeness**: all acceptance criteria from the task files met, no partial implementations.
+
+**Deviation audit**: for each documented deviation, verify it preserves the task's contract — every acceptance criterion still met, no scope or user-visible behavior change. A justified deviation (reusing an existing utility, following project conventions) is fine; an undocumented divergence from the task, or a "better way" that quietly changed the outcome, is a critical issue.
 
 **Security**: no hardcoded secrets, access control on new data paths, input validated, no injection vectors, auth checks on privileged operations.
 
