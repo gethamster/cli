@@ -72,7 +72,7 @@ In Claude Code:
 
 ```
 /plugin marketplace add gethamster/cli
-/plugin install hamster@gethamster-cli
+/plugin install hamster@hamster-plugins
 ```
 
 ### Cursor and Codex plugin packaging
