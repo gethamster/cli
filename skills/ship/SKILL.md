@@ -174,6 +174,10 @@ Tier 1/2 deviations (documented adaptations with unchanged outcome) need no acti
 
 ### 2. Validate + Test (once per wave)
 
+First, run the repo's formatter in write mode — discover it from the repo's own scripts and tooling config, and pick the variant that fixes files, not the `--check` one. Formatting is a separate CI gate from lint in many repos; skipping it ships red PRs even when lint passes. Formatter rewrites are part of the wave: they land in each parent's staged files at commit time.
+
+Then checks and tests:
+
 ```bash
 # Detect tooling; run checks then tests
 if [ -f "package.json" ]; then
@@ -234,6 +238,8 @@ Stop sync, then final validation. Only kill the watcher if YOU started it (numer
 kill {literal-sync-pid} 2>/dev/null
 # re-run the wave validation block above for a final full check
 ```
+
+If the final formatter pass leaves a diff (e.g. from post-review edits), commit it before the PR: `git add -u && git commit -m "style: apply repository formatter"`.
 
 **PR** — Ask the user ("Create a PR?" yes/later). If yes, inline (no agent):
 
