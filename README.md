@@ -107,12 +107,24 @@ Codex local install helper:
 
 | Skill | Persona | Description |
 |-------|---------|-------------|
+| `/hamster:ask [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work; explicit requests can also perform supported actions |
 | `/hamster:ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
 | `/hamster:plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
 | `/hamster:resume [slug]` | — | Resume interrupted execution from where you left off |
 | `/hamster:review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
 | `/hamster:qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
 | `/hamster:retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
+
+#### `/hamster:ask`
+
+The direct gateway to Hamster's connected workspace context: the product direction, briefs, blueprints, decisions, code, and related work that shape what the team should build. Explicit requests can also perform supported workspace actions:
+
+```
+/hamster:ask I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
+/hamster:ask I prototyped rate limiting in apps/api/middleware/rate-limit.ts. Create a brief for this work.
+```
+
+Follow-up questions continue the same Hamster conversation when they depend on the previous response.
 
 #### `/hamster:ship`
 
