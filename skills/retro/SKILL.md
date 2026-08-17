@@ -1,4 +1,5 @@
 ---
+name: retro
 description: Engineering retrospective from git history. Team metrics, contributor deep-dives, trends, and actionable insights. Use when the user wants a retrospective on recent development activity.
 ---
 
