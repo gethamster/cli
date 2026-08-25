@@ -91,13 +91,6 @@ codex plugin marketplace add gethamster/cli
 
 Then open Codex, run `/plugins`, and install `hamster@hamster-plugins`.
 
-For integrations that only discover local plugins under `$CODEX_HOME/plugins`, use the compatibility helper instead:
-
-```bash
-./scripts/install-codex-plugin.sh        # symlink mode (default)
-./scripts/install-codex-plugin.sh copy   # copy mode
-```
-
 ### Plugin skills
 
 | Skill | Persona | Description |
