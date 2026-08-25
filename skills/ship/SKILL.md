@@ -1,4 +1,5 @@
 ---
+name: ship
 description: Ship a Hamster Studio brief. Merge base, implement in parallel waves, test, review, create bisectable commits, and optionally PR. Use when the user wants to execute or ship a brief.
 ---
 

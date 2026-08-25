@@ -1,4 +1,5 @@
 ---
+name: ask
 description: >-
   Ask Hamster to connect the current code or editor context with workspace
   priorities, blockers, blueprints, related work, or intent. Also supports
