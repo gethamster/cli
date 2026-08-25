@@ -75,6 +75,8 @@ In Claude Code:
 /plugin install hamster@hamster-plugins
 ```
 
+The Claude Code plugin includes Hamster's hosted MCP connection. The first time you use it, Claude Code prompts you to sign in to your Hamster workspace.
+
 ### Cursor and Codex plugin packaging
 
 This repository also includes first-class plugin manifests for:

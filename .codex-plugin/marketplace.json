@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Codex plugins for Hamster Studio",
-    "version": "3.2.0"
+    "version": "3.3.0"
   },
   "plugins": [
     {
       "name": "hamster",
       "source": ".",
       "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes",
-      "version": "3.2.0",
+      "version": "3.3.0",
       "author": {
         "name": "Hamster",
         "email": "hello@tryhamster.com"
