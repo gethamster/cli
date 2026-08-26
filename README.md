@@ -114,9 +114,9 @@ git clone https://github.com/gethamster/cli
 agy plugin install ./cli/.agents/plugins/hamster
 ```
 
-Then in `agy`, run `/mcp` and confirm the `hamster` server. If sign-in is needed, use Authenticate (IDE: Customizations. CLI: the `/mcp` panel).
+Then in `agy`, run `/mcp` and confirm the `hamster` server. `agy plugin install` stages the plugin at `~/.gemini/config/plugins/hamster`. If the server shows Unauthorized, sign in from Antigravity IDE Customizations (Authenticate next to the server). The CLI `/mcp` panel shows status, Restart, and Disable; it does not expose Authenticate.
 
-IDE install: copy `.agents/plugins/hamster` to `~/.gemini/config/plugins/hamster` (all workspaces) or into the target repo's `.agents/plugins/hamster` (one workspace).
+IDE install without the CLI: copy `.agents/plugins/hamster` to `~/.gemini/config/plugins/hamster` (all workspaces) or into the target repo's `.agents/plugins/hamster` (one workspace).
 
 ### Plugin skills
 
