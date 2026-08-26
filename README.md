@@ -105,18 +105,15 @@ Codex local install helper:
 
 ### Antigravity
 
-This repository also includes a native Antigravity plugin at `.agents/plugins/hamster`. That folder holds `plugin.json` and `mcp_config.json`. `skills` and `agents` are symlinks to the shared repo-root trees (same pattern as Compound Engineering's `.agy/skills` link). Do not put `plugin.json` at the repo root: Cursor would treat it as a Cursor Agent Plugin.
-
-CLI install (preferred; stages real files so the install does not depend on the repo):
+CLI install (no clone). The repo root is an [Agent Plugins](https://agent-plugins.org) package (`plugin.json`, `skills/`, `mcp.json`). Live `agy` reads Antigravity `mcp_config.json` (`serverUrl`) and ignores `mcp.json`. Cursor marketplace packaging stays in `.cursor-plugin/` and is not replaced by the root manifest.
 
 ```bash
-git clone https://github.com/gethamster/cli
-agy plugin install ./cli/.agents/plugins/hamster
+agy plugin install https://github.com/gethamster/cli
 ```
 
-Then in `agy`, run `/mcp` and confirm the `hamster` server. `agy plugin install` stages the plugin at `~/.gemini/config/plugins/hamster`. If the server shows Unauthorized, sign in from Antigravity IDE Customizations (Authenticate next to the server). The CLI `/mcp` panel shows status, Restart, and Disable; it does not expose Authenticate.
+Then in `agy`, run `/mcp` and confirm the `hamster` server. Install stages `~/.gemini/config/plugins/hamster`. If the server shows Unauthorized, sign in from Antigravity IDE Customizations (Authenticate next to the server). The CLI `/mcp` panel shows status, Restart, and Disable; it does not expose Authenticate.
 
-IDE without the CLI: open this repo (workspace plugin at `.agents/plugins/hamster`) or run the CLI install above. Do not `cp` the plugin folder: the relative skill/agent links would break outside this repo.
+Local checkout or IDE workspace: `agy plugin install /path/to/cli` (repo root) or `agy plugin install /path/to/cli/.agents/plugins/hamster`. Opening this repo in Antigravity IDE also loads `.agents/plugins/hamster` (skills/agents there are symlinks to the shared trees).
 
 ### Plugin skills
 
