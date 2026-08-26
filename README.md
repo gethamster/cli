@@ -105,9 +105,9 @@ Codex local install helper:
 
 ### Antigravity
 
-This repository also includes a native Antigravity plugin at `.agents/plugins/hamster`.
+This repository also includes a native Antigravity plugin at `.agents/plugins/hamster`. That folder holds `plugin.json` and `mcp_config.json`. `skills` and `agents` are symlinks to the shared repo-root trees (same pattern as Compound Engineering's `.agy/skills` link). Do not put `plugin.json` at the repo root: Cursor would treat it as a Cursor Agent Plugin.
 
-CLI install:
+CLI install (preferred; stages real files so the install does not depend on the repo):
 
 ```bash
 git clone https://github.com/gethamster/cli
@@ -116,7 +116,7 @@ agy plugin install ./cli/.agents/plugins/hamster
 
 Then in `agy`, run `/mcp` and confirm the `hamster` server. `agy plugin install` stages the plugin at `~/.gemini/config/plugins/hamster`. If the server shows Unauthorized, sign in from Antigravity IDE Customizations (Authenticate next to the server). The CLI `/mcp` panel shows status, Restart, and Disable; it does not expose Authenticate.
 
-IDE install without the CLI: copy `.agents/plugins/hamster` to `~/.gemini/config/plugins/hamster` (all workspaces) or into the target repo's `.agents/plugins/hamster` (one workspace).
+IDE without the CLI: open this repo (workspace plugin at `.agents/plugins/hamster`) or run the CLI install above. Do not `cp` the plugin folder: the relative skill/agent links would break outside this repo.
 
 ### Plugin skills
 
