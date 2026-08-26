@@ -1,4 +1,5 @@
 {
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "hamster",
   "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes."
 }
