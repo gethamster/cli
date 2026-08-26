@@ -103,6 +103,21 @@ Codex local install helper:
 ./scripts/install-codex-plugin.sh copy   # copy mode
 ```
 
+### Antigravity
+
+This repository also includes a native Antigravity plugin at `.agents/plugins/hamster`.
+
+CLI install:
+
+```bash
+git clone https://github.com/gethamster/cli
+agy plugin install ./cli/.agents/plugins/hamster
+```
+
+Then in `agy`, run `/mcp` and confirm the `hamster` server. If sign-in is needed, use Authenticate (IDE: Customizations. CLI: the `/mcp` panel).
+
+IDE install: copy `.agents/plugins/hamster` to `~/.gemini/config/plugins/hamster` (all workspaces) or into the target repo's `.agents/plugins/hamster` (one workspace).
+
 ### Plugin skills
 
 | Skill | Persona | Description |
