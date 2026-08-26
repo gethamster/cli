@@ -105,15 +105,19 @@ Codex local install helper:
 
 ### Antigravity
 
-CLI install (no clone). The repo root is an [Agent Plugins](https://agent-plugins.org) package (`plugin.json`, `skills/`, `mcp.json`). Live `agy` reads Antigravity `mcp_config.json` (`serverUrl`) and ignores `mcp.json`. Cursor marketplace packaging stays in `.cursor-plugin/` and is not replaced by the root manifest.
+In Antigravity CLI (`agy`):
 
 ```bash
 agy plugin install https://github.com/gethamster/cli
 ```
 
-Then in `agy`, run `/mcp` and confirm the `hamster` server. Install stages `~/.gemini/config/plugins/hamster`. If the server shows Unauthorized, sign in from Antigravity IDE Customizations (Authenticate next to the server). The CLI `/mcp` panel shows status, Restart, and Disable; it does not expose Authenticate.
+Then run `/mcp` and confirm the `hamster` server. If it shows Unauthorized, sign in from Antigravity IDE Customizations.
 
-Local checkout or IDE workspace: `agy plugin install /path/to/cli` (repo root) or `agy plugin install /path/to/cli/.agents/plugins/hamster`. Opening this repo in Antigravity IDE also loads `.agents/plugins/hamster` (skills/agents there are symlinks to the shared trees).
+Local checkout:
+
+```bash
+agy plugin install /path/to/cli
+```
 
 ### Plugin skills
 
