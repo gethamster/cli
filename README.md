@@ -107,16 +107,8 @@ Codex local install helper:
 
 In Antigravity CLI (`agy`):
 
-```bash
-agy plugin install https://github.com/gethamster/cli
 ```
-
-Then run `/mcp` and confirm the `hamster` server. If it shows Unauthorized, sign in from Antigravity IDE Customizations.
-
-Local checkout:
-
-```bash
-agy plugin install /path/to/cli
+agy plugin install https://github.com/gethamster/cli
 ```
 
 ### Plugin skills
