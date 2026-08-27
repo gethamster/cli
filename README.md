@@ -62,46 +62,34 @@ A [Claude skill](https://docs.anthropic.com/en/docs/claude-code/skills) is also 
 
 ---
 
-## hamster — Claude Code Plugin
+## hamster — Claude Code, Cursor, and Codex plugins
 
-This repo also ships a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that orchestrates end-to-end execution of Hamster Studio briefs. The plugin is **execution-only**: plans (parent tasks, subtasks, context) are generated upstream in Hamster Studio and synced into `.hamster/` via `hamster sync`. The plugin schedules those existing tasks into parallel waves inline (no planner agent), dispatches independent parent tasks simultaneously, reviews each wave, and creates bisectable commits per parent task. Executors load project context as they go — the `hamster-project-context` skill, project skills, blueprints, and methods — but never generate or elaborate tasks. Trust comes with leeway, not blindness: executors adapt to mechanical drift (a file moved, a helper renamed) and document it, and escalate genuine plan defects as PLAN_ISSUE — verified by the orchestrator, decided by the user when scope is affected, and fed back to Hamster Studio via the PR's Plan Feedback section.
+This repo also ships Hamster plugins for Claude Code, Cursor, and Codex that orchestrate end-to-end execution of Hamster Studio briefs. The plugins are **execution-only**: plans (parent tasks, subtasks, context) are generated upstream in Hamster Studio and synced into `.hamster/` via `hamster sync`. They schedule those existing tasks into parallel waves inline (no planner agent), dispatch independent parent tasks simultaneously, review each wave, and create bisectable commits per parent task. Executors load project context as they go — the `hamster-project-context` skill, project skills, blueprints, and methods — but never generate or elaborate tasks. Trust comes with leeway, not blindness: executors adapt to mechanical drift (a file moved, a helper renamed) and document it, and escalate genuine plan defects as PLAN_ISSUE — verified by the orchestrator, decided by the user when scope is affected, and fed back to Hamster Studio via the PR's Plan Feedback section.
 
 ### Plugin install
 
-In Claude Code:
+Every host package points to the shared root `.mcp.json`, which connects to the hosted Hamster MCP server. On first use, the host discovers OAuth and prompts you to sign in to your Hamster workspace.
+
+#### Claude Code
 
 ```
 /plugin marketplace add gethamster/cli
 /plugin install hamster@hamster-plugins
 ```
 
-### Cursor and Codex plugin packaging
+#### Cursor
 
-This repository also includes first-class plugin manifests for:
+In Cursor, open **Customize** in the sidebar, choose **Plugins**, and import the marketplace from `https://github.com/gethamster/cli`. Find Hamster, select **Install**, and choose project or user scope.
 
-- Cursor: `.cursor-plugin/plugin.json` and `.cursor-plugin/marketplace.json`
-- Codex-compatible hosts: `.codex-plugin/plugin.json` and `.codex-plugin/marketplace.json`
+#### Codex
 
-These manifests include listing metadata (`version`, `author`, `homepage`, `repository`, `license`, `keywords`, `category`, `tags`) plus component paths (`agents`, `commands`, `skills`) and a shared logo (`assets/logo.svg`).
-
-Cursor publish URL:
+Add the repository as a Codex marketplace:
 
 ```bash
-# Submit for review/public listing
-# https://cursor.com/marketplace/publish
+codex plugin marketplace add gethamster/cli
 ```
 
-Codex note:
-
-- OpenAI Codex CLI currently does not document a public plugin marketplace submission endpoint.
-- Use direct repository distribution and consume `.codex-plugin/plugin.json` in your Codex host/runtime integration.
-
-Codex local install helper:
-
-```bash
-./scripts/install-codex-plugin.sh        # symlink mode (default)
-./scripts/install-codex-plugin.sh copy   # copy mode
-```
+Then open Codex, run `/plugins`, and install `hamster@hamster-plugins`.
 
 ### Antigravity
 
