@@ -103,6 +103,14 @@ Codex local install helper:
 ./scripts/install-codex-plugin.sh copy   # copy mode
 ```
 
+### Antigravity
+
+In Antigravity CLI (`agy`):
+
+```
+agy plugin install https://github.com/gethamster/cli
+```
+
 ### Plugin skills
 
 | Skill | Persona | Description |
