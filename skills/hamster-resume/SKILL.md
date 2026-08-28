@@ -1,11 +1,11 @@
 ---
-name: resume
+name: hamster-resume
 description: Resume an interrupted brief execution. Auto-detect progress, reconstruct state from git history and task statuses, and continue from the correct wave. Use when the user wants to continue a previously interrupted ship session.
 ---
 
 # Resume Brief Execution
 
-Resumes an interrupted `/hamster:ship` session. Reconstructs state from task statuses, git log, and git status — no state file needed. Like `/hamster:ship`, this is execution-only: it continues the pre-generated plan in `.hamster/` and never replans.
+Resumes an interrupted `/hamster:hamster-ship` session. Reconstructs state from task statuses, git log, and git status — no state file needed. Like `/hamster:hamster-ship`, this is execution-only: it continues the pre-generated plan in `.hamster/` and never replans.
 
 **Argument**: "$ARGUMENTS"
 
@@ -23,7 +23,7 @@ else
   hamster sync --watch > /dev/null 2>&1 &
   echo "account=${account} sync_pid=$!"
 fi
-# sync_pid handling matches /hamster:ship Setup: "existing" → reuse, never kill;
+# sync_pid handling matches /hamster:hamster-ship Setup: "existing" → reuse, never kill;
 # numeric → remember the literal number (fresh shell per Bash call)
 # Signal A: current branch
 git branch --show-current
@@ -39,13 +39,13 @@ Resolution order:
 1. **Argument provided** → use it as the slug (verify `brief.md` exists)
 2. **Branch matches** `feature/ham-{n}-{slug}` → extract the slug
 3. **One brief** has in_progress tasks → use it; **multiple** → AskUserQuestion
-4. **None** → tell the user nothing to resume; suggest `/hamster:ship`
+4. **None** → tell the user nothing to resume; suggest `/hamster:hamster-ship`
 
 ---
 
 ## Find the Resume Point
 
-Run the **Scheduling** step from `/hamster:ship` (the inline frontmatter parse + wave grouping). Then overlay git state in one call:
+Run the **Scheduling** step from `/hamster:hamster-ship` (the inline frontmatter parse + wave grouping). Then overlay git state in one call:
 
 ```bash
 # Committed parents
@@ -77,4 +77,4 @@ Verify the branch first: if not on `feature/ham-{n}-{slug}`, ask whether to swit
 
 Dirty working tree not attributable to an in_progress task → show the changes, ask: commit as part of current task / stash / discard.
 
-Then run the **Execution Loop** and **Completion** sections from `/hamster:ship` exactly as written, starting at the resume wave (partial waves: launch executors only for uncommitted parents). One difference at completion: if a PR already exists for this branch, just push — the PR updates automatically; report its URL instead of creating a new one.
+Then run the **Execution Loop** and **Completion** sections from `/hamster:hamster-ship` exactly as written, starting at the resume wave (partial waves: launch executors only for uncommitted parents). One difference at completion: if a PR already exists for this branch, just push — the PR updates automatically; report its URL instead of creating a new one.

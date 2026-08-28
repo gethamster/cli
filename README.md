@@ -103,32 +103,32 @@ agy plugin install https://github.com/gethamster/cli
 
 | Skill | Persona | Description |
 |-------|---------|-------------|
-| `/hamster:ask [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work; explicit requests can also perform supported actions |
-| `/hamster:ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
-| `/hamster:plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
-| `/hamster:resume [slug]` | — | Resume interrupted execution from where you left off |
-| `/hamster:review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
-| `/hamster:qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
-| `/hamster:retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
+| `/hamster:hamster-ask [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work; explicit requests can also perform supported actions |
+| `/hamster:hamster-ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
+| `/hamster:hamster-plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
+| `/hamster:hamster-resume [slug]` | — | Resume interrupted execution from where you left off |
+| `/hamster:hamster-review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
+| `/hamster:hamster-qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
+| `/hamster:hamster-retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
 
-#### `/hamster:ask`
+#### `/hamster:hamster-ask`
 
 The direct gateway to Hamster's connected workspace context: the product direction, briefs, blueprints, decisions, code, and related work that shape what the team should build. Explicit requests can also perform supported workspace actions:
 
 ```
-/hamster:ask I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
-/hamster:ask I prototyped rate limiting in apps/api/middleware/rate-limit.ts. Create a brief for this work.
+/hamster:hamster-ask I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
+/hamster:hamster-ask I prototyped rate limiting in apps/api/middleware/rate-limit.ts. Create a brief for this work.
 ```
 
 Follow-up questions continue the same Hamster conversation when they depend on the previous response.
 
-#### `/hamster:ship`
+#### `/hamster:hamster-ship`
 
 The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 ```
-/hamster:ship user-authentication
-/hamster:ship https://tryhamster.com/home/hamster/briefs/2de8d546-50ab-4dbd-a678-579ec8119f60
+/hamster:hamster-ship user-authentication
+/hamster:hamster-ship https://tryhamster.com/home/hamster/briefs/2de8d546-50ab-4dbd-a678-579ec8119f60
 ```
 
 If no argument is given, presents an interactive picker of actionable briefs.
@@ -137,12 +137,12 @@ If no argument is given, presents an interactive picker of actionable briefs.
 
 No plan generation or task elaboration occurs at any step — scheduling only organizes the pre-generated tasks into parallel waves.
 
-#### `/hamster:plan`
+#### `/hamster:hamster-plan`
 
 Read-only analysis with optional deep review. Produces the execution plan without making changes.
 
 ```
-/hamster:plan api-rate-limiting
+/hamster:hamster-plan api-rate-limiting
 ```
 
 After analysis, choose a review mode:
@@ -150,16 +150,16 @@ After analysis, choose a review mode:
 - **Eng Review (Architecture Mode)** — 4-section technical review with ASCII diagrams and test plan
 - **Quick Analysis** — Just the plan
 
-#### `/hamster:resume`
+#### `/hamster:hamster-resume`
 
 Resumes an interrupted execution. Auto-detects the brief from the git branch name (`feature/ham-{id}-{slug}`), in-progress tasks, or a provided argument.
 
 ```
-/hamster:resume
-/hamster:resume user-authentication
+/hamster:hamster-resume
+/hamster:hamster-resume user-authentication
 ```
 
-#### `/hamster:review`
+#### `/hamster:hamster-review`
 
 Paranoid two-pass code review for the current feature branch:
 - **Pass 1 (CRITICAL)**: SQL safety, race conditions, auth boundaries, enum completeness, secrets
@@ -167,31 +167,31 @@ Paranoid two-pass code review for the current feature branch:
 - Interactive resolution for critical findings with fix/acknowledge/false-positive options
 
 ```
-/hamster:review
+/hamster:hamster-review
 ```
 
-#### `/hamster:qa`
+#### `/hamster:hamster-qa`
 
 Systematic testing with 4 modes:
 
 ```
-/hamster:qa diff        # Test only what changed (default on feature branches)
-/hamster:qa full        # Full test suite with coverage
-/hamster:qa quick       # 30-second lint + typecheck + smoke tests
-/hamster:qa regression  # Changed files + dependents, flag new failures
+/hamster:hamster-qa diff        # Test only what changed (default on feature branches)
+/hamster:hamster-qa full        # Full test suite with coverage
+/hamster:hamster-qa quick       # 30-second lint + typecheck + smoke tests
+/hamster:hamster-qa regression  # Changed files + dependents, flag new failures
 ```
 
 Includes issue taxonomy (functional/type-safety/integration/performance/coverage-gap) and optional fix loop.
 
-#### `/hamster:retro`
+#### `/hamster:hamster-retro`
 
 Engineering retrospective from git history:
 
 ```
-/hamster:retro          # Last 7 days (default)
-/hamster:retro 14       # Last 14 days
-/hamster:retro 30       # Last 30 days
-/hamster:retro 24h      # Last 24 hours
+/hamster:hamster-retro          # Last 7 days (default)
+/hamster:hamster-retro 14       # Last 14 days
+/hamster:hamster-retro 30       # Last 30 days
+/hamster:hamster-retro 24h      # Last 24 hours
 ```
 
 Produces: metrics table, hourly distribution, session analysis, hotspots, PR sizes, per-contributor deep dive with praise and growth suggestions, trends vs last retro, and a narrative summary.

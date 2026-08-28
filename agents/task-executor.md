@@ -118,7 +118,7 @@ Do NOT run typecheck, lint, build, or test commands. Validation is handled by th
 hamster task status {PARENT-DISPLAY-ID} done
 ```
 
-If any subtask was escalated as PLAN_ISSUE, do NOT mark the parent done — leave it `in_progress` and say so in the report. Subtasks you DID complete keep their individual `done` status (do not revert them) so `/hamster:resume` won't redo finished work.
+If any subtask was escalated as PLAN_ISSUE, do NOT mark the parent done — leave it `in_progress` and say so in the report. Subtasks you DID complete keep their individual `done` status (do not revert them) so `/hamster:hamster-resume` won't redo finished work.
 
 Produce a summary:
 - Files modified (one-line description per file)

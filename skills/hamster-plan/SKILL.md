@@ -1,5 +1,5 @@
 ---
-name: plan
+name: hamster-plan
 description: Plan a Hamster Studio brief. Read tasks, build dependency graph, detect parallel execution waves, with optional CEO or Eng review modes. Use when the user wants to analyze a brief before executing.
 ---
 
@@ -19,7 +19,7 @@ account=$(ls -d .hamster/*/ 2>/dev/null | head -1 | xargs basename)
 echo "Account: $account"
 ```
 
-Then run the **Brief Selection** and **Scheduling** sections from `/hamster:ship` exactly as written (argument parsing, brief picker, inline frontmatter parse, wave grouping) — but stop after producing the schedule; do not confirm execution.
+Then run the **Brief Selection** and **Scheduling** sections from `/hamster:hamster-ship` exactly as written (argument parsing, brief picker, inline frontmatter parse, wave grouping) — but stop after producing the schedule; do not confirm execution.
 
 Additionally read the brief body (`brief.md`) and skim the parent task bodies to inform the analysis below.
 
@@ -89,7 +89,7 @@ Work through 10 sections, using AskUserQuestion for any critical finding that ne
 
 ## Offer Transition
 
-AskUserQuestion: "Ship this brief?" — "Yes, ship now" → run `/hamster:ship {slug}`; "No, just planning" → end.
+AskUserQuestion: "Ship this brief?" — "Yes, ship now" → run `/hamster:hamster-ship {slug}`; "No, just planning" → end.
 
 ---
 

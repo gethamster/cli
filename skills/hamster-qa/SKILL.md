@@ -1,5 +1,5 @@
 ---
-name: qa
+name: hamster-qa
 description: Systematic QA with diff-aware, full suite, quick smoke, or regression testing modes. Issue taxonomy and optional fix loop. Use when the user wants to run tests or check quality on their changes.
 ---
 
@@ -218,4 +218,4 @@ Ship readiness: {READY | NEEDS_WORK | BLOCKED}
 - Safe to run repeatedly as you iterate
 - Diff mode is the most useful for day-to-day development
 - Quick mode is designed for rapid feedback before pushing
-- Run `/qa diff` before `/review` for a complete pre-landing check
+- Run `/hamster:hamster-qa diff` before `/hamster:hamster-review` for a complete pre-landing check
