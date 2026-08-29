@@ -1,0 +1,27 @@
+name: Plugin validation
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Cursor manifest schema
+        run: >-
+          npx --yes
+          --package ajv-cli@5.0.0
+          --package ajv-formats@3.0.1
+          ajv validate
+          --spec=draft7
+          -c ajv-formats
+          -s scripts/schemas/cursor-plugin.schema.json
+          -d .cursor-plugin/plugin.json
+      - name: Validate schema-external package invariants
+        run: python3 scripts/validate_plugin.py
+      - name: Test schema-external package invariants
+        run: python3 -m unittest discover -s tests -p 'test_validate_plugin.py'

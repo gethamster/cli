@@ -2,39 +2,50 @@
 
 ## Connect current work to priorities
 
-```bash
-hamster chat "I'm working on the webhook retry logic in apps/sync/src/modules/linear/. What are the team's priorities around this area, and is there an initiative tracking this work?"
-```
-
-## Understand a blocker before coding
-
-```bash
-hamster chat "I'm about to start on the mobile checkout flow. What's blocking that initiative, and are there any briefs already in progress for it?"
+```json
+ask_hamster({
+  "prompt": "I'm working on webhook retry logic in apps/sync/src/modules/linear/ on branch fix/linear-retries. What priorities or initiatives cover this area?"
+})
 ```
 
 ## Pull blueprint context during implementation
 
-```bash
-hamster chat "I'm modifying the auth middleware in apps/web/app/api/. What does our blueprint say about the auth architecture for third-party integrations?"
+```json
+ask_hamster({
+  "prompt": "I'm modifying auth middleware in apps/web/app/api/. What does our workspace say about third-party integration authentication?"
+})
 ```
 
-## Find related work before duplicating it
+## Capture prototyped work
 
-```bash
-hamster chat "I'm about to add rate limiting to the webhook processor in apps/sync/. Are there other briefs or tasks that touch rate limiting or the webhook processor?"
+```json
+ask_hamster({
+  "prompt": "I prototyped rate-limit middleware in apps/api/middleware/rate-limit.ts on branch feat/rate-limiting. Create a brief and link it to the Q3 platform reliability initiative."
+})
 ```
 
-## Capture work you already prototyped
+## Continue a conversation
 
-```bash
-hamster chat "I prototyped rate-limit middleware in apps/api/middleware/rate-limit.ts on branch feat/rate-limiting. Create a brief for this work and link it to the Q3 platform reliability initiative."
+```json
+ask_hamster({
+  "prompt": "What's blocking the Linear sync initiative?"
+})
 ```
 
-## Narrow a blocker to the current branch
+If that call returns `pending`, poll its exact turn:
 
-```bash
-hamster chat "I'm working in apps/sync/src/modules/linear/. What's blocking the Linear sync initiative?"
-hamster chat --continue "Which of those blockers can I unblock from the current branch, and are there tasks already assigned to me?"
+```json
+get_hamster_reply({
+  "thread_id": "<returned-thread-id>",
+  "turn_id": "<returned-turn-id>"
+})
 ```
 
-Use the second form only when the follow-up relies on the first response.
+After the first turn completes, send a dependent follow-up with its thread:
+
+```json
+ask_hamster({
+  "prompt": "Which blocker can this branch address?",
+  "thread_id": "<returned-thread-id>"
+})
+```

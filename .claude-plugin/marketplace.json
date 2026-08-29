@@ -1,7 +1,7 @@
 {
   "name": "hamster-plugins",
   "metadata": {
-    "description": "Claude Code plugins for Hamster Studio"
+    "description": "Ask Hamster and ship briefs with authenticated MCP tools"
   },
   "owner": {
     "name": "Hamster",
@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "hamster",
-      "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes",
-      "version": "3.3.0",
+      "description": "Ask Hamster and ship briefs with authenticated MCP tools",
+      "version": "4.0.0",
       "source": "./",
       "category": "workflow",
       "homepage": "https://tryhamster.com",
@@ -20,7 +20,7 @@
         "name": "Hamster",
         "email": "hello@tryhamster.com"
       },
-      "license": "Proprietary",
+      "license": "MIT",
       "keywords": [
         "hamster",
         "brief-execution",
