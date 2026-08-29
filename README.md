@@ -91,6 +91,21 @@ codex plugin marketplace add gethamster/cli
 
 Then open Codex, run `/plugins`, and install `hamster@hamster-plugins`.
 
+That path bundles the hosted Hamster MCP server. For a skill-only install on the [Codex Plugin Marketplace](https://www.codex-marketplace.com) (no apps, MCP, or hooks):
+
+```bash
+npx codex-marketplace add gethamster/cli/plugins/hamster-skills --plugin --project
+```
+
+`review`, `qa`, and `retro` run without a Hamster project. `ask`, `ship`, `plan`, and `resume` tell Codex to install the Hamster CLI if it is missing.
+
+After editing root `skills/` or `agents/`, refresh the marketplace bundle:
+
+```bash
+scripts/sync-codex-marketplace.sh
+scripts/sync-codex-marketplace.sh --check
+```
+
 ### Antigravity
 
 In Antigravity CLI (`agy`):
