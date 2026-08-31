@@ -99,13 +99,6 @@ npx codex-marketplace add gethamster/cli/plugins/hamster-skills --plugin --proje
 
 `review`, `qa`, and `retro` run without a Hamster project. `ask`, `ship`, `plan`, and `resume` tell Codex to install the Hamster CLI if it is missing.
 
-After editing root `skills/` or `agents/`, refresh the marketplace copies (`plugins/hamster-skills/` cannot symlink to the rest of the repo — the installer clones only that folder):
-
-```bash
-scripts/sync-codex-marketplace.sh
-scripts/sync-codex-marketplace.sh --check
-```
-
 ### Antigravity
 
 In Antigravity CLI (`agy`):

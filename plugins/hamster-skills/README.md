@@ -23,12 +23,3 @@ This is the [Codex Plugin Marketplace](https://www.codex-marketplace.com) listin
 | `resume` | yes | Resume interrupted brief execution |
 
 `ask`, `ship`, `plan`, and `resume` instruct Codex to install the [Hamster CLI](https://tryhamster.com) if it is missing.
-
-## Publishing
-
-Canonical files live at the repo root (`skills/`, `agents/`, `assets/logo.svg`). This directory is a real copy, not a symlink: the marketplace installer clones only `plugins/hamster-skills/`, and Codex drops symlinks on install. After editing the canonical files:
-
-```bash
-scripts/sync-codex-marketplace.sh
-scripts/sync-codex-marketplace.sh --check
-```
