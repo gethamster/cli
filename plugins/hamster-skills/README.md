@@ -26,7 +26,7 @@ This is the [Codex Plugin Marketplace](https://www.codex-marketplace.com) listin
 
 ## Publishing
 
-Canonical skill files live at the repo root (`skills/`, `agents/`, `assets/logo.svg`). After editing them:
+Canonical files live at the repo root (`skills/`, `agents/`, `assets/logo.svg`). This directory is a real copy, not a symlink: the marketplace installer clones only `plugins/hamster-skills/`, and Codex drops symlinks on install. After editing the canonical files:
 
 ```bash
 scripts/sync-codex-marketplace.sh
