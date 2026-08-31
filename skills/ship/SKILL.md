@@ -42,7 +42,7 @@ fi
 
 ## Brief Selection
 
-> Referenced by `/hamster:plan` ("run the Brief Selection and Scheduling sections") — keep this section's name and behavior stable.
+> Referenced by `/hamster:plan-hamster` ("run the Brief Selection and Scheduling sections") — keep this section's name and behavior stable.
 
 ### If argument provided:
 
@@ -90,7 +90,7 @@ done | sort -t'|' -k1,1
 
 ## Scheduling (inline — no planner agent)
 
-> Referenced by `/hamster:plan` and `/hamster:resume` — keep this section's name and behavior stable.
+> Referenced by `/hamster:plan-hamster` and `/hamster:resume-hamster` — keep this section's name and behavior stable.
 
 The plan already exists; this step only organizes it into waves. Parse all task frontmatter in one call:
 
@@ -154,7 +154,7 @@ Merge conflict → **STOP**, report conflicts, do NOT auto-resolve.
 
 ## Execution Loop
 
-> Referenced by `/hamster:resume` (re-enters this loop at the resume wave) — keep this section's name and behavior stable. Same applies to Completion below.
+> Referenced by `/hamster:resume-hamster` (re-enters this loop at the resume wave) — keep this section's name and behavior stable. Same applies to Completion below.
 
 For each wave, in order:
 
@@ -297,5 +297,5 @@ Brief shipped: {title}
 ## Notes
 
 - One commit set per parent (subtasks are never committed individually)
-- Interrupted? `/hamster:resume` reconstructs state from git + task statuses
+- Interrupted? `/hamster:resume-hamster` reconstructs state from git + task statuses
 - Single PR per brief by default; >15 tasks → ask about splitting

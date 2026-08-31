@@ -103,21 +103,21 @@ agy plugin install https://github.com/gethamster/cli
 
 | Skill | Persona | Description |
 |-------|---------|-------------|
-| `/hamster:ask [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work; explicit requests can also perform supported actions |
+| `/hamster:ask-hamster [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work; explicit requests can also perform supported actions |
 | `/hamster:ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
-| `/hamster:plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
-| `/hamster:resume [slug]` | — | Resume interrupted execution from where you left off |
-| `/hamster:review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
+| `/hamster:plan-hamster [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
+| `/hamster:resume-hamster [slug]` | — | Resume interrupted execution from where you left off |
+| `/hamster:review-hamster` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
 | `/hamster:qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
 | `/hamster:retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
 
-#### `/hamster:ask`
+#### `/hamster:ask-hamster`
 
 The direct gateway to Hamster's connected workspace context: the product direction, briefs, blueprints, decisions, code, and related work that shape what the team should build. Explicit requests can also perform supported workspace actions:
 
 ```
-/hamster:ask I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
-/hamster:ask I prototyped rate limiting in apps/api/middleware/rate-limit.ts. Create a brief for this work.
+/hamster:ask-hamster I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
+/hamster:ask-hamster I prototyped rate limiting in apps/api/middleware/rate-limit.ts. Create a brief for this work.
 ```
 
 Follow-up questions continue the same Hamster conversation when they depend on the previous response.
@@ -137,12 +137,12 @@ If no argument is given, presents an interactive picker of actionable briefs.
 
 No plan generation or task elaboration occurs at any step — scheduling only organizes the pre-generated tasks into parallel waves.
 
-#### `/hamster:plan`
+#### `/hamster:plan-hamster`
 
 Read-only analysis with optional deep review. Produces the execution plan without making changes.
 
 ```
-/hamster:plan api-rate-limiting
+/hamster:plan-hamster api-rate-limiting
 ```
 
 After analysis, choose a review mode:
@@ -150,16 +150,16 @@ After analysis, choose a review mode:
 - **Eng Review (Architecture Mode)** — 4-section technical review with ASCII diagrams and test plan
 - **Quick Analysis** — Just the plan
 
-#### `/hamster:resume`
+#### `/hamster:resume-hamster`
 
 Resumes an interrupted execution. Auto-detects the brief from the git branch name (`feature/ham-{id}-{slug}`), in-progress tasks, or a provided argument.
 
 ```
-/hamster:resume
-/hamster:resume user-authentication
+/hamster:resume-hamster
+/hamster:resume-hamster user-authentication
 ```
 
-#### `/hamster:review`
+#### `/hamster:review-hamster`
 
 Paranoid two-pass code review for the current feature branch:
 - **Pass 1 (CRITICAL)**: SQL safety, race conditions, auth boundaries, enum completeness, secrets
@@ -167,7 +167,7 @@ Paranoid two-pass code review for the current feature branch:
 - Interactive resolution for critical findings with fix/acknowledge/false-positive options
 
 ```
-/hamster:review
+/hamster:review-hamster
 ```
 
 #### `/hamster:qa`

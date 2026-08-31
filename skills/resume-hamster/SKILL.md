@@ -1,5 +1,5 @@
 ---
-name: resume
+name: resume-hamster
 description: Resume an interrupted brief execution. Auto-detect progress, reconstruct state from git history and task statuses, and continue from the correct wave. Use when the user wants to continue a previously interrupted ship session.
 ---
 

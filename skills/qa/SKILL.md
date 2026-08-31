@@ -218,4 +218,4 @@ Ship readiness: {READY | NEEDS_WORK | BLOCKED}
 - Safe to run repeatedly as you iterate
 - Diff mode is the most useful for day-to-day development
 - Quick mode is designed for rapid feedback before pushing
-- Run `/qa diff` before `/review` for a complete pre-landing check
+- Run `/qa diff` before `/review-hamster` for a complete pre-landing check
