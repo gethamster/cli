@@ -6,21 +6,21 @@
   },
   "metadata": {
     "description": "Cursor plugins for Hamster Studio",
-    "version": "3.3.0"
+    "version": "3.4.0"
   },
   "plugins": [
     {
       "name": "hamster",
-      "source": ".",
+      "source": "./",
       "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes",
-      "version": "3.3.0",
+      "version": "3.4.0",
       "author": {
         "name": "Hamster",
         "email": "hello@tryhamster.com"
       },
       "homepage": "https://tryhamster.com",
       "repository": "https://github.com/gethamster/cli",
-      "license": "Proprietary",
+      "license": "MIT",
       "logo": "assets/logo.svg",
       "keywords": [
         "hamster",

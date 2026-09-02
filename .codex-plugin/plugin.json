@@ -1,7 +1,7 @@
 {
   "name": "hamster",
-  "version": "3.3.0",
-  "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes. Ship, plan, review, QA, and retro.",
+  "version": "3.4.0",
+  "description": "Orchestrates Hamster Studio brief execution with team personas, parallel wave execution, and deep review modes. Ask Hamster over hosted MCP; setup, ship, plan, resume, review, QA, and retro.",
   "author": {
     "name": "Hamster",
     "email": "hello@tryhamster.com"
@@ -9,12 +9,16 @@
   "homepage": "https://tryhamster.com",
   "repository": "https://github.com/gethamster/cli",
   "mcpServers": "./.mcp.json",
-  "license": "Proprietary",
+  "license": "MIT",
   "keywords": [
     "hamster",
     "brief-execution",
     "task-orchestration",
     "ai-workflow",
     "workflow-automation"
-  ]
+  ],
+  "interface": {
+    "displayName": "Hamster",
+    "logo": "./assets/logo.svg"
+  }
 }
