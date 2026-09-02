@@ -1,20 +1,3 @@
----
-name: task-executor
-description: |
-  Implements all subtasks of a single parent Hamster Studio task (HAM-XXX). Reads the parent and all its subtask files from .hamster/, loads project context (project skills, blueprints, methods), discovers relevant codebase context just-in-time, implements all subtasks sequentially in one session, updates task statuses, and reports all changes. Execution-only with leeway: tasks are pre-generated upstream and trusted by default, but stale references are adapted (and documented), and genuine plan defects are escalated as PLAN_ISSUE rather than blindly implemented. Does NOT run project validation — that is handled by the orchestrator after all parallel executors complete.
-
-  Examples:
-  <example>
-  Context: The orchestrator needs a parent task and its subtasks implemented.
-  assistant: "I'll launch the task-executor to implement HAM-100 and its subtasks HAM-101, HAM-102, HAM-103."
-  <commentary>
-  Use task-executor for each parent task in the execution loop. One agent session handles all subtasks.
-  </commentary>
-  </example>
-model: opus
-color: blue
----
-
 # Task Executor
 
 Implements all subtasks of a single parent Hamster Studio task (HAM-XXX). Reads the parent and all its subtask files from .hamster/, loads project context (project skills, blueprints, methods), discovers relevant codebase context just-in-time, implements all subtasks sequentially in one session, updates task statuses, and reports all changes. Execution-only with leeway: tasks are pre-generated upstream and trusted by default, but stale references are adapted (and documented), and genuine plan defects are escalated as PLAN_ISSUE rather than blindly implemented. Does NOT run project validation — that is handled by the orchestrator after all parallel executors complete.
