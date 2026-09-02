@@ -1,5 +1,5 @@
 ---
-name: plan
+name: plan-hamster
 description: Plan a Hamster Studio brief. Read tasks, build dependency graph, detect parallel execution waves, with optional CEO or Eng review modes. Use when the user wants to analyze a brief before executing.
 ---
 
@@ -11,15 +11,40 @@ Read-only analysis of a Hamster Studio brief. Builds the dependency tree and wav
 
 ---
 
+## Readiness
+
+Before assuming a Hamster CLI, run this skill's bundled gate. Set `SKILL_DIR` to the absolute path of the directory holding the SKILL.md you just read — the shell's working directory is the user's project, not this skill — and keep the whole command on one line with its statements `;`-separated, because some clients flatten a fenced block before running it. The `else` branch is the same gate inline, for clients that expose no readable path to the installed package.
+
+Unix:
+
+```bash
+SKILL_DIR="<absolute path of the directory containing this SKILL.md>"; if [ -f "$SKILL_DIR/scripts/ensure-ready.sh" ]; then bash "$SKILL_DIR/scripts/ensure-ready.sh"; else export PATH="$HOME/.hamster/bin:$PATH"; if command -v hamster >/dev/null 2>&1 && printf '%s' "$(hamster --no-tui status 2>/dev/null || true)" | grep -q "Logged in" && sync_err="$(hamster sync 2>&1)"; then echo READY; else [ -n "${sync_err:-}" ] && printf '%s\n' "$sync_err" >&2; echo SETUP_NEEDED; exit 1; fi; fi
+```
+
+Windows:
+
+```powershell
+$SkillDir = "<absolute path of the directory containing this SKILL.md>"; if (Test-Path "$SkillDir\scripts\ensure-ready.ps1") { pwsh "$SkillDir\scripts\ensure-ready.ps1" } else { $env:PATH = "$env:USERPROFILE\.hamster\bin;" + $env:PATH; if ((Get-Command hamster -ErrorAction SilentlyContinue) -and ((hamster --no-tui status 2>$null | Out-String) -cmatch "Logged in")) { $syncOut = & hamster sync 2>&1; if ($LASTEXITCODE -eq 0) { "READY" } else { [Console]::Error.WriteLine(($syncOut | Out-String).TrimEnd()); "SETUP_NEEDED"; exit 1 } } else { "SETUP_NEEDED"; exit 1 } }
+```
+
+If it prints `SETUP_NEEDED`, follow the setup skill, then re-run the check. Do not continue until it prints `READY`.
+
 ## Select and Schedule
 
 ```bash
-[ -d ".hamster" ] || { echo ".hamster/ not found. Run 'hamster sync' first."; exit 0; }
-account=$(ls -d .hamster/*/ 2>/dev/null | head -1 | xargs basename)
+[ -d ".hamster" ] || { echo ".hamster/ not found. Run the setup skill, then hamster sync."; exit 1; }
+account="${HAMSTER_ACCOUNT_ID:-}"
+if [ -z "$account" ]; then
+  account=$(for d in .hamster/*/; do [ -d "${d}briefs" ] && basename "$d"; done)
+  n=$(printf '%s\n' "$account" | grep -c .)
+  [ "$n" -eq 1 ] || { echo "ACCOUNT_UNRESOLVED: ${n} directories under .hamster/ contain briefs/; set HAMSTER_ACCOUNT_ID"; exit 1; }
+fi
 echo "Account: $account"
 ```
 
-Then run the **Brief Selection** and **Scheduling** sections from `/hamster:ship` exactly as written (argument parsing, brief picker, inline frontmatter parse, wave grouping) — but stop after producing the schedule; do not confirm execution.
+`ACCOUNT_UNRESOLVED` → stop and ask the user to set `HAMSTER_ACCOUNT_ID`; sibling directories like `.hamster/plans/` are not accounts.
+
+Then read [brief-selection](references/brief-selection.md) and follow both its sections exactly as written (argument parsing, brief picker, inline frontmatter parse, wave grouping) — but stop after producing the schedule; do not confirm execution.
 
 Additionally read the brief body (`brief.md`) and skim the parent task bodies to inform the analysis below.
 
@@ -39,7 +64,7 @@ Additionally read the brief body (`brief.md`) and skim the parent task bodies to
 
 ## Mode Picker
 
-AskUserQuestion with 3 options:
+Ask the user with 3 options:
 
 1. **CEO Review (Founder Mode)** — rethink from first principles; deep 10-section review
 2. **Eng Review (Architecture Mode)** — lock in architecture; 4 sections with diagrams and test plan
@@ -51,9 +76,9 @@ AskUserQuestion with 3 options:
 
 **Prime Directives**: zero silent failures; data flows mapped through 4 shadow paths (happy/nil/empty/error); observability is first-class scope; everything deferred gets written down.
 
-**Step 0 — Scope Challenge** (AskUserQuestion): **SCOPE EXPANSION** (what's the 10-star version?), **HOLD SCOPE** (bulletproof execution; surface every risk), or **SCOPE REDUCTION** (strip to minimum value; defer the rest).
+**Step 0 — Scope Challenge** (ask the user): **SCOPE EXPANSION** (what's the 10-star version?), **HOLD SCOPE** (bulletproof execution; surface every risk), or **SCOPE REDUCTION** (strip to minimum value; defer the rest).
 
-Work through 10 sections, using AskUserQuestion for any critical finding that needs a user decision:
+Work through 10 sections, asking the user for any critical finding that needs a decision:
 
 1. **Architecture** — component dependency graph; data flow through the 4 paths; state machines for stateful transitions; integration points
 2. **Error & Rescue Map** — table: method → exception → handler → what user sees; flag unhandled+untested+user-visible gaps; cascading failure risks
@@ -72,7 +97,7 @@ Work through 10 sections, using AskUserQuestion for any critical finding that ne
 
 ## Eng Review Mode
 
-**Step 0 — Scope Challenge** (AskUserQuestion): **BIG CHANGE** (interactive, one section at a time, max 8 issues per section) or **SMALL CHANGE** (compressed single pass, one top issue per section).
+**Step 0 — Scope Challenge** (ask the user): **BIG CHANGE** (interactive, one section at a time, max 8 issues per section) or **SMALL CHANGE** (compressed single pass, one top issue per section).
 
 4 sections:
 
@@ -81,7 +106,7 @@ Work through 10 sections, using AskUserQuestion for any critical finding that ne
 3. **Test Strategy** — mandatory vs. nice-to-have tests, integration boundaries (mock vs. real); write a **Test Plan Artifact** to `.hamster/plans/{brief-slug}-test-plan.md`
 4. **Performance** — N+1 detection, data fetching patterns, caching needs, latency analysis
 
-**Issue resolution**: one AskUserQuestion at a time; lead with the recommendation ("Do B. Here's why:"), 2-3 lettered options mapped to simplicity/correctness/performance tradeoffs.
+**Issue resolution**: ask the user one question at a time; lead with the recommendation ("Do B. Here's why:"), 2-3 lettered options mapped to simplicity/correctness/performance tradeoffs.
 
 **Output**: ASCII diagrams per major flow, test plan artifact, completion summary table, and an explicit **NOT-in-scope** section.
 
@@ -89,7 +114,7 @@ Work through 10 sections, using AskUserQuestion for any critical finding that ne
 
 ## Offer Transition
 
-AskUserQuestion: "Ship this brief?" — "Yes, ship now" → run `/hamster:ship {slug}`; "No, just planning" → end.
+Ask the user: "Ship this brief?" — "Yes, ship now" → run `/hamster:ship {slug}`; "No, just planning" → end.
 
 ---
 
@@ -97,6 +122,6 @@ AskUserQuestion: "Ship this brief?" — "Yes, ship now" → run `/hamster:ship {
 
 | Error | Recovery |
 |-------|----------|
-| `.hamster/` missing | Stop — tell user to run `hamster sync` |
+| `.hamster/` missing | Stop — follow the setup skill, then retry |
 | Brief not found | Show partial matches, suggest closest |
 | Malformed argument | Show usage examples, ask user to re-enter |
