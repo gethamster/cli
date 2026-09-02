@@ -1,123 +1,95 @@
-# Hamster CLI
+# Hamster
 
-Sync project context from [Hamster Studio](https://tryhamster.com) to your local repositories. Briefs, tasks, blueprints, and methods land in a `.hamster/` directory, ready for your editor and AI tools.
+**Install Hamster.** One plugin. Talk through hosted MCP. Keep the plan on disk, then ship from it.
+
+This is the Hamster product: skills, hosted MCP, and thin native adapters for Cursor, Claude Code, Codex, and Antigravity. The CLI is how the plan stays in this repo. It is not a second install.
 
 ## Install
 
-```bash
-curl -fsSL https://tryhamster.com/cli/install | bash
+Installation differs by client. If you use more than one, install Hamster separately for each one.
+
+### Cursor
+
+Open Customize → Plugins (or the Marketplace tab), search for "Hamster", and select Install.
+
+`/add-plugin hamster` will work too, once Hamster is listed on the Cursor marketplace:
+
+```text
+/add-plugin hamster
 ```
 
-Or download a binary directly from the [latest release](https://github.com/gethamster/cli/releases/latest).
-
-### Supported platforms
-
-| OS | Architecture |
-|----|-------------|
-| macOS | Intel (`amd64`), Apple Silicon (`arm64`) |
-| Linux | `amd64`, `arm64` |
-| Windows | `amd64` |
-
-## Quick start
+Until it is listed, clone this repository into Cursor's local plugins folder and reload Cursor. Clone, do not symlink: Cursor rejects a local plugin whose link target sits outside that folder. On Enterprise, an admin must allow local plugin imports.
 
 ```bash
-# Authenticate with Hamster Studio
-hamster auth login
-
-# Initialize a repository
-hamster init
-
-# Sync project context
-hamster sync
-
-# Or watch for real-time updates
-hamster sync --watch
+git clone https://github.com/gethamster/cli ~/.cursor/plugins/local/hamster
 ```
 
-## Commands
+Grok Bot is not a separate Hamster package. It uses the same Cursor account and plugin library, so the Cursor install above is the Grok Bot install. Do not run `/add-plugin` in the Grok Bot chat, and do not clone this repository onto the Grok Bot computer.
 
-| Command | Description |
-|---------|-------------|
-| `hamster auth login` | Authenticate via browser (OAuth 2.1 + PKCE) |
-| `hamster auth logout` | Log out and clear stored credentials |
-| `hamster init` | Initialize `.hamster/` directory and run first sync |
-| `hamster sync` | One-time sync from Hamster Studio |
-| `hamster sync --watch` | Continuous real-time sync via WebSocket |
-| `hamster status` | Show sync status and statistics |
-| `hamster task status <id> <status>` | Update task status (`todo`, `in_progress`, `done`) |
-| `hamster brief status <slug> <status>` | Update brief status |
-| `hamster tui` | Launch Mission Control terminal dashboard |
+### Claude Code
 
-## What gets synced
-
-```
-.hamster/
-  briefs/        # Project briefs
-  tasks/         # Task summaries and notes
-  blueprints/    # Architecture documents
-  methods/       # Team conventions
-```
-
-A [Claude skill](https://docs.anthropic.com/en/docs/claude-code/skills) is also generated at `.claude/skills/hamster-project-context/` for automatic project context awareness.
-
----
-
-## hamster — Claude Code, Cursor, and Codex plugins
-
-This repo also ships Hamster plugins for Claude Code, Cursor, and Codex that orchestrate end-to-end execution of Hamster Studio briefs. The plugins are **execution-only**: plans (parent tasks, subtasks, context) are generated upstream in Hamster Studio and synced into `.hamster/` via `hamster sync`. They schedule those existing tasks into parallel waves inline (no planner agent), dispatch independent parent tasks simultaneously, review each wave, and create bisectable commits per parent task. Executors load project context as they go — the `hamster-project-context` skill, project skills, blueprints, and methods — but never generate or elaborate tasks. Trust comes with leeway, not blindness: executors adapt to mechanical drift (a file moved, a helper renamed) and document it, and escalate genuine plan defects as PLAN_ISSUE — verified by the orchestrator, decided by the user when scope is affected, and fed back to Hamster Studio via the PR's Plan Feedback section.
-
-### Plugin install
-
-Every host package points to the shared root `.mcp.json`, which connects to the hosted Hamster MCP server. On first use, the host discovers OAuth and prompts you to sign in to your Hamster workspace.
-
-#### Claude Code
-
-```
+```text
 /plugin marketplace add gethamster/cli
 /plugin install hamster@hamster-plugins
 ```
 
-#### Cursor
+### Codex CLI
 
-In Cursor, open **Customize** in the sidebar, choose **Plugins**, and import the marketplace from `https://github.com/gethamster/cli`. Find Hamster, select **Install**, and choose project or user scope.
-
-#### Codex
-
-Add the repository as a Codex marketplace:
-
-```bash
+```text
 codex plugin marketplace add gethamster/cli
+codex plugin add hamster@hamster-plugins
 ```
 
-Then open Codex, run `/plugins`, and install `hamster@hamster-plugins`.
+You can also launch `codex`, run `/plugins`, and install `hamster@hamster-plugins`.
 
 ### Antigravity
 
-In Antigravity CLI (`agy`):
+From this repository:
 
+```text
+agy plugin install .
 ```
+
+Or from GitHub:
+
+```text
 agy plugin install https://github.com/gethamster/cli
 ```
 
-### Plugin skills
+## After install
+
+1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`. The client owns OAuth.
+2. **Plan on disk** — say Install Hamster, or run ship. The setup skill installs the CLI if needed, runs `hamster auth login`, and syncs the plan.
+3. **Ship** — execute the brief already on disk. Nothing runs automatically on session start.
+
+## Skills
+
+Claude Code lists these as `/hamster:<skill>`. Cursor lists them as `/<skill>`. The table uses the Claude form.
 
 | Skill | Persona | Description |
 |-------|---------|-------------|
-| `/hamster:ask [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work; explicit requests can also perform supported actions |
+| `/hamster:setup` | — | Install the CLI, sign in, and sync the plan into this repo |
+| `/hamster:ask-hamster [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work via hosted MCP |
 | `/hamster:ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
-| `/hamster:plan [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
-| `/hamster:resume [slug]` | — | Resume interrupted execution from where you left off |
-| `/hamster:review` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
+| `/hamster:plan-hamster [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
+| `/hamster:resume-hamster [slug]` | — | Resume interrupted execution from where you left off |
+| `/hamster:review-hamster` | Staff Engineer | Paranoid two-pass code review (CRITICAL then INFORMATIONAL) |
 | `/hamster:qa [mode]` | QA Lead | Systematic testing: diff-aware, full, quick, regression |
 | `/hamster:retro [days]` | Eng Manager | Engineering retrospective with metrics, trends, team analysis |
 
-#### `/hamster:ask`
+Four skills carry a `-hamster` suffix because Cursor invokes plugin skills as a bare `/skill-name`, and `ask`, `plan`, and `resume` are Cursor's own concepts — `cursor-agent --mode` takes `plan` and `ask`, `--resume` selects a session — so short names compete with them there. `review` is renamed with that family so Cursor's command list stays one convention. Claude Code namespaces plugin skills as `/<plugin>:<skill>` and they cannot conflict, so on Claude the suffix is redundant and you type `/hamster:ask-hamster`. One skills tree serves every client, so that is the cost of being unambiguous on Cursor. `ship`, `qa`, `retro`, and `setup` shadow nothing and stay short.
 
-The direct gateway to Hamster's connected workspace context: the product direction, briefs, blueprints, decisions, code, and related work that shape what the team should build. Explicit requests can also perform supported workspace actions:
+#### `/hamster:setup`
+
+The readiness path. Noninteractive check first (`ensure-ready`). If the CLI is installed and you are signed in, it runs `hamster sync` to refresh the plan. Otherwise it installs the CLI, opens login, and inits/syncs — only when you asked.
+
+#### `/hamster:ask-hamster`
+
+The direct gateway to Hamster's connected workspace context. Uses the hosted Hamster MCP server this plugin already configured. Explicit requests can also perform supported workspace actions:
 
 ```
-/hamster:ask I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
-/hamster:ask I prototyped rate limiting in apps/api/middleware/rate-limit.ts. Create a brief for this work.
+/hamster:ask-hamster I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
+/hamster:ask-hamster I prototyped rate limiting in apps/api/middleware/rate-limit.ts. Create a brief for this work.
 ```
 
 Follow-up questions continue the same Hamster conversation when they depend on the previous response.
@@ -133,16 +105,16 @@ The main orchestrator. Accepts a brief slug, UUID, or Hamster Studio URL:
 
 If no argument is given, presents an interactive picker of actionable briefs.
 
-**Flow**: Setup (prereqs + live sync, one call) → Brief selection → Inline wave scheduling (one confirmation) → Branch + merge base → Parallel wave execution (implement → validate + test → wave review → bisectable commits) → Final validation → Ask about PR creation
+**Flow**: Readiness (setup/ensure-ready) → Setup (prereqs + live sync) → Brief selection → Inline wave scheduling (one confirmation) → Branch + merge base → Parallel wave execution (implement → validate + test → wave review → bisectable commits) → Final validation → Ask about PR creation
 
 No plan generation or task elaboration occurs at any step — scheduling only organizes the pre-generated tasks into parallel waves.
 
-#### `/hamster:plan`
+#### `/hamster:plan-hamster`
 
 Read-only analysis with optional deep review. Produces the execution plan without making changes.
 
 ```
-/hamster:plan api-rate-limiting
+/hamster:plan-hamster api-rate-limiting
 ```
 
 After analysis, choose a review mode:
@@ -150,16 +122,16 @@ After analysis, choose a review mode:
 - **Eng Review (Architecture Mode)** — 4-section technical review with ASCII diagrams and test plan
 - **Quick Analysis** — Just the plan
 
-#### `/hamster:resume`
+#### `/hamster:resume-hamster`
 
 Resumes an interrupted execution. Auto-detects the brief from the git branch name (`feature/ham-{id}-{slug}`), in-progress tasks, or a provided argument.
 
 ```
-/hamster:resume
-/hamster:resume user-authentication
+/hamster:resume-hamster
+/hamster:resume-hamster user-authentication
 ```
 
-#### `/hamster:review`
+#### `/hamster:review-hamster`
 
 Paranoid two-pass code review for the current feature branch:
 - **Pass 1 (CRITICAL)**: SQL safety, race conditions, auth boundaries, enum completeness, secrets
@@ -167,7 +139,7 @@ Paranoid two-pass code review for the current feature branch:
 - Interactive resolution for critical findings with fix/acknowledge/false-positive options
 
 ```
-/hamster:review
+/hamster:review-hamster
 ```
 
 #### `/hamster:qa`
@@ -196,14 +168,27 @@ Engineering retrospective from git history:
 
 Produces: metrics table, hourly distribution, session analysis, hotspots, PR sizes, per-contributor deep dive with praise and growth suggestions, trends vs last retro, and a narrative summary.
 
-### Agents
+### Execution workers
 
-| Agent | Persona | Model | Purpose |
-|-------|---------|-------|---------|
-| **task-executor** | Senior Engineer | Opus | Implements one parent task + subtasks; loads project skills, blueprints, and methods; 4-path data flow thinking |
-| **wave-reviewer** | Staff Engineer | Sonnet | Reviews a whole wave's diff (per-parent verdicts + cross-parent integration checks), then simplifies |
+| Worker | Persona | Purpose |
+|--------|---------|---------|
+| **task-executor** | Senior Engineer | Implements one parent task + subtasks; loads project skills, blueprints, and methods |
+| **wave-reviewer** | Staff Engineer | Reviews a whole wave's diff (per-parent verdicts + cross-parent integration checks), then simplifies |
 
-Wave scheduling, branch creation, commits, and PR creation are handled inline by the orchestrator — no dedicated agents.
+Canonical worker protocols live in `skills/ship/references/agents/`. Root `agents/task-executor.md` and `agents/wave-reviewer.md` are generated native adapters (Claude/Cursor registration + model metadata) over those bodies — run `node scripts/sync-adapters.mjs` after editing the canonical files; CI checks drift. Ship prefers the registered native agent when the client exposes it, otherwise launches a generic subagent and injects the matching canonical body, otherwise runs the same protocol inline. On the generic path, prefer the strongest available coding model for task-executor and a mid-tier model for wave-reviewer when the client can pin one; otherwise inherit. Wave scheduling, branch creation, commits, and PR creation stay inline.
+
+Every skill directory is self-contained: no SKILL.md reads a sibling skill's files, because clients are free to install or load one skill on its own. Shared material — the readiness scripts under `scripts/`, and the protocols under `references/` that resume-hamster and plan-hamster re-enter — is duplicated into each skill that needs it, and `scripts/validate-plugin.mjs` hashes every copy and fails the build if they drift apart.
+
+**Editing shared material is a multi-file edit.** The first path in each group below is the source of truth; the rest are copies that must stay byte-identical. Change the source, copy it over the others, then run the validator — it names the exact `cp` commands when a group has drifted.
+
+| Source of truth | Copies |
+|---|---|
+| `skills/setup/scripts/ensure-ready.sh` | `ship`, `plan-hamster`, `resume-hamster` |
+| `skills/setup/scripts/ensure-ready.ps1` | `ship`, `plan-hamster`, `resume-hamster` |
+| `skills/ship/references/brief-selection.md` | `plan-hamster`, `resume-hamster` |
+| `skills/ship/references/execution-loop.md` | `resume-hamster` |
+| `skills/ship/references/agents/task-executor.md` | `resume-hamster` |
+| `skills/ship/references/agents/wave-reviewer.md` | `resume-hamster` |
 
 ### Execution loop
 
@@ -215,8 +200,8 @@ Wave N (parallel):
 
 Post-wave (orchestrator):
   Validation + test gate (one pass, stop on test failure)
-  [wave-reviewer] — one agent for the whole wave
-    (small low-risk waves: orchestrator reviews inline, no agent)
+  [wave-reviewer] — one worker for the whole wave
+    (small low-risk waves: orchestrator reviews inline, no worker)
   Bisectable commits per parent (direct bash)
 ```
 
@@ -231,6 +216,55 @@ Post-wave (orchestrator):
 
 ---
 
+## Advanced: CLI binary
+
+Use this only when you want the `hamster` binary without a plugin client.
+
+```bash
+curl -fsSL https://tryhamster.com/cli/install | bash
+hamster auth login
+hamster init
+hamster sync
+```
+
+Or download a binary from the [latest release](https://github.com/gethamster/cli/releases/latest).
+
+Supported platforms: macOS (`amd64`, `arm64`), Linux (`amd64`, `arm64`), Windows (`amd64`).
+
+The plugin package and source files in this repository are licensed under MIT. Prebuilt `hamster` binaries distributed through GitHub Releases are provided under Hamster's [Commercial Terms](https://tryhamster.com/terms-of-service).
+
+### CLI commands
+
+| Command | Description |
+|---------|-------------|
+| `hamster auth login` | Authenticate via browser (OAuth 2.1 + PKCE) |
+| `hamster auth logout` | Log out and clear stored credentials |
+| `hamster init` | Initialize Hamster data and run first sync |
+| `hamster sync` | One-time sync from Hamster Studio |
+| `hamster sync --watch` | Continuous real-time sync via WebSocket |
+| `hamster status` | Show sync status and statistics (`hamster --no-tui status` for plain output, which is what the skills' readiness gate runs) |
+| `hamster task status <id> <status>` | Update task status (`todo`, `in_progress`, `done`) |
+| `hamster brief status <slug> <status>` | Update brief status |
+
+### What gets synced
+
+Skills read `.hamster/` in the current repo:
+
+```
+.hamster/
+  {account}/
+    briefs/
+      {brief-slug}/
+        brief.md     # The brief itself
+        tasks/       # Parent tasks and subtasks
+    blueprints/      # Architecture documents
+    methods/         # Team conventions
+```
+
+Skills resolve the account directory from `HAMSTER_ACCOUNT_ID`, or by finding the one directory under `.hamster/` that contains `briefs/`. They stop and ask if more than one qualifies.
+
+---
+
 ## License
 
-Proprietary. Copyright Hamster Studio.
+MIT. Copyright Hamster Studio. The MIT grant covers the plugin package and source files in this repository; prebuilt `hamster` binaries distributed through GitHub Releases are provided under Hamster's [Commercial Terms](https://tryhamster.com/terms-of-service).
