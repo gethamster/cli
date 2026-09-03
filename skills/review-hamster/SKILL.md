@@ -1,5 +1,5 @@
 ---
-name: review
+name: review-hamster
 description: Paranoid two-pass code review. CRITICAL issues that block shipping, then INFORMATIONAL advisory findings. Interactive resolution for critical issues. Use when the user wants a code review on their current feature branch.
 ---
 
@@ -114,7 +114,7 @@ No critical or informational issues found. Ship it.
 
 ## Step 7: Interactive Resolution for CRITICAL Issues
 
-For each CRITICAL finding, use AskUserQuestion one at a time:
+For each CRITICAL finding, ask the user one at a time:
 
 Present the issue with three options:
 - **Option A: Fix now** — describe the recommended fix approach
@@ -122,7 +122,7 @@ Present the issue with three options:
 - **Option C: Mark as false positive** — explain why and the reviewer removes it from the list
 
 If the user chooses "Fix now":
-1. Apply the fix using Edit
+1. Edit the file to apply the fix
 2. Verify the fix doesn't introduce new issues
 3. Move to the next critical finding
 
@@ -166,4 +166,4 @@ After resolving all critical findings:
 - Safe to run repeatedly as you iterate on fixes
 - Focus on the diff, not pre-existing issues in unchanged code
 - Findings are specific (file:line) and actionable (concrete fix suggestions)
-- Run this before `/ship` to catch issues early, or independently on any feature branch
+- Run this before `/hamster:ship` to catch issues early, or independently on any feature branch

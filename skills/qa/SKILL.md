@@ -33,7 +33,7 @@ If "$ARGUMENTS" is provided and matches one of `diff`, `full`, `quick`, `regress
 
 Otherwise:
 - If on a feature branch (not the base branch), default to `diff`
-- If on the base branch, use AskUserQuestion with mode descriptions:
+- If on the base branch, ask the user with mode descriptions:
   - **diff** — Test only what changed on this branch (default for feature branches)
   - **full** — Run entire test suite with coverage report
   - **quick** — 30-second feedback: lint + typecheck + smoke tests
@@ -159,7 +159,7 @@ Classify each failure or finding:
 
 ## Step 6: Fix Loop (Optional)
 
-Use AskUserQuestion: "Found N issues. Fix them now?"
+Ask the user: "Found N issues. Fix them now?"
 - **Option A: Fix all** — automated fix loop for all issues
 - **Option B: Fix critical only** — fix only critical/high severity
 - **Option C: Just report, don't fix** — output report and stop
@@ -218,4 +218,4 @@ Ship readiness: {READY | NEEDS_WORK | BLOCKED}
 - Safe to run repeatedly as you iterate
 - Diff mode is the most useful for day-to-day development
 - Quick mode is designed for rapid feedback before pushing
-- Run `/qa diff` before `/review` for a complete pre-landing check
+- Run `/hamster:qa diff` before `/hamster:review-hamster` for a complete pre-landing check

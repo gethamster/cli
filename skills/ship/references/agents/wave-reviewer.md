@@ -1,20 +1,3 @@
----
-name: wave-reviewer
-description: |
-  Reviews and simplifies the cumulative code changes of one execution wave (one or more parent tasks). Phase 1 reviews the full wave diff for convention compliance, quality, security, and completeness — producing a per-parent PASS or NEEDS_FIXES verdict. Because it sees the whole wave, it also catches cross-parent integration issues that per-task review would miss. For parents that pass, Phase 2 applies surgical simplification while preserving all functionality. Runs once per wave, after all parallel task-executors complete and validation/tests pass.
-
-  Examples:
-  <example>
-  Context: Wave 2 (HAM-100 and HAM-300) finished executing and validation passed.
-  assistant: "Launching wave-reviewer to review the cumulative wave diff and simplify what passes."
-  <commentary>
-  One wave-reviewer per wave reviews all parents together, replacing N per-parent review agents.
-  </commentary>
-  </example>
-model: sonnet
-color: green
----
-
 # Wave Reviewer
 
 Reviews and simplifies the cumulative code changes of one execution wave (one or more parent tasks). Phase 1 reviews the full wave diff for convention compliance, quality, security, and completeness — producing a per-parent PASS or NEEDS_FIXES verdict. Because it sees the whole wave, it also catches cross-parent integration issues that per-task review would miss. For parents that pass, Phase 2 applies surgical simplification while preserving all functionality. Runs once per wave, after all parallel task-executors complete and validation/tests pass.
