@@ -7,7 +7,7 @@ description: Ask Hamster to connect the current code or editor context with work
 
 **Request**: "$ARGUMENTS"
 
-Use the hosted Hamster MCP server this plugin already exposes (`https://tryhamster.com/mcp`). The client owns OAuth — if Hamster MCP tools are unavailable, tell the user to finish the client's Hamster sign-in prompt. In Antigravity CLI, `/mcp` only shows status; tell the user to authenticate Hamster in Antigravity IDE under Agent Settings → Customizations, then retry. Do not fall back to `hamster chat` and do not assume a local CLI.
+Use the hosted Hamster MCP server this plugin already exposes (`https://tryhamster.com/mcp`). The client owns OAuth — if Hamster MCP tools are unavailable, tell the user to finish the client's Hamster sign-in prompt. Do not fall back to `hamster chat` and do not assume a local CLI.
 
 Call the Hamster `ask_hamster` tool (or the client's equivalent Hamster MCP ask tool) with the request. Include local working context the MCP cannot see on its own: file paths, the current branch and diff, error messages, and the code under discussion.
 

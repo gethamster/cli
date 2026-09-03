@@ -61,7 +61,7 @@ agy plugin install https://github.com/gethamster/cli
 
 ## After install
 
-1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`. Claude Code, Cursor, and Codex own OAuth. For Antigravity, open IDE Agent Settings → Customizations and authenticate Hamster there; the CLI `/mcp` view has no authentication action.
+1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`. Your client owns the Hamster sign-in.
 2. **Plan on disk** — say Install Hamster, or run ship. The setup skill installs the CLI if needed, runs `hamster auth login`, and syncs the plan.
 3. **Ship** — execute the brief already on disk. Nothing runs automatically on session start.
 
