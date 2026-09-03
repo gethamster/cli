@@ -52,14 +52,6 @@ Or from GitHub:
 agy plugin install https://github.com/gethamster/cli
 ```
 
-When upgrading, uninstall the existing copy first so Antigravity does not retain skills removed by the new version:
-
-```text
-agy plugin uninstall hamster
-```
-
-After installation, open Antigravity Agent Settings → Customizations and select Authenticate next to Hamster. The CLI `/mcp` view reports `Unauthorized` until this client OAuth step is complete.
-
 ## After install
 
 1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`. The client owns OAuth.
