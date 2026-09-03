@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Generate root agents/*.md as native Claude/Cursor projections over the
+ * Generate root agents/*.md as Claude Code native-agent projections over the
  * canonical skill-local prompt bodies under skills/ship/references/agents/.
  *
  * Usage:
