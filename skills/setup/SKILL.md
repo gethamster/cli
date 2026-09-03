@@ -26,7 +26,7 @@ $SkillDir = "<absolute path of the directory containing this SKILL.md>"; if (Tes
 ```
 
 - Prints `READY` — the CLI is installed, you are signed in, and `hamster sync` succeeded. Stop.
-- Prints `SETUP_NEEDED` — continue below. Do not invent another install path.
+- Prints `SETUP_NEEDED` — if this is Codex on macOS and `hamster` is already on `PATH`, re-run only this readiness command with elevated permission. The default workspace sandbox cannot read Keychain credentials, and an extra directory grant does not change that. If the elevated check prints `READY`, stop. Only if it still prints `SETUP_NEEDED`, continue below.
 
 ## Install the CLI
 

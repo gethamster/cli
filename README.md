@@ -52,9 +52,16 @@ Or from GitHub:
 agy plugin install https://github.com/gethamster/cli
 ```
 
+If Hamster 3.2 is already installed, uninstall it before you install 3.4. An in-place Antigravity install retains the four skill directories renamed in 3.4.
+
+```text
+agy plugin uninstall hamster
+agy plugin install https://github.com/gethamster/cli
+```
+
 ## After install
 
-1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`. The client owns OAuth.
+1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`. Claude Code, Cursor, and Codex own OAuth. For Antigravity, open IDE Agent Settings → Customizations and authenticate Hamster there; the CLI `/mcp` view has no authentication action.
 2. **Plan on disk** — say Install Hamster, or run ship. The setup skill installs the CLI if needed, runs `hamster auth login`, and syncs the plan.
 3. **Ship** — execute the brief already on disk. Nothing runs automatically on session start.
 
