@@ -10,15 +10,11 @@ Installation differs by client. If you use more than one, install Hamster separa
 
 ### Cursor
 
-This repository is a Cursor plugin marketplace with one plugin in it, so you add the repository and then add the plugin:
+1. Customize → Add Marketplace → Import from GitHub.
+2. Paste `https://github.com/gethamster/cli` and select Import.
+3. Open the Hamster marketplace tab and select Add.
 
-1. Open Customize → Add Marketplace → Import from GitHub.
-2. Paste `https://github.com/gethamster/cli`, keep the scope at User, and select Import.
-3. Open the new marketplace tab and select Add on Hamster.
-
-Cursor reads `.cursor-plugin/marketplace.json` from the repository root, so the marketplace tracks this repository's default branch. On Enterprise, an admin must allow marketplace imports.
-
-Once Hamster is listed on the Cursor marketplace, the search box and `/add-plugin hamster` work too:
+On Enterprise, an admin must allow marketplace imports. Once Hamster is on the Cursor marketplace, `/add-plugin hamster` works too:
 
 ```text
 /add-plugin hamster
