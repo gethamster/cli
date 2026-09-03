@@ -88,7 +88,7 @@ The readiness path. Noninteractive check first (`ensure-ready`). If the CLI is i
 
 #### `/hamster:ask-hamster`
 
-The direct gateway to Hamster's connected workspace context. Uses the hosted Hamster MCP server this plugin already configured. Explicit requests can also perform supported workspace actions:
+The direct gateway to Hamster's connected workspace context. Prefer the hosted Hamster MCP server this plugin already configured; if those tools are unavailable, `hamster chat` is the same ask path over the CLI. Explicit requests can also perform supported workspace actions:
 
 ```
 /hamster:ask-hamster I'm modifying auth middleware in apps/web/app/api/. What does our blueprint say about third-party integrations?
