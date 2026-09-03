@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 
+/**
+ * Filesystem and JSON helpers here (pathExists, readJsonFile, walkFiles,
+ * validateReferencedPath, and relative-path safety) were adapted from Cursor's
+ * plugin-template validate-template.mjs:
+ * https://raw.githubusercontent.com/cursor/plugin-template/main/scripts/validate-template.mjs
+ * The rest of this file is Hamster-specific.
+ */
+
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";

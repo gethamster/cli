@@ -12,6 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Run plugin package tests
+        run: node --test scripts/test-plugin.mjs
       - name: Check generated native agents
         run: node scripts/sync-adapters.mjs --check
       - name: Validate plugin package
