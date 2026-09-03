@@ -2,7 +2,7 @@
 
 **Install Hamster.** One plugin. Talk through hosted MCP. Keep the plan on disk, then ship from it.
 
-This is the Hamster product: skills, hosted MCP, and thin native adapters for Cursor, Claude Code, Codex, and Antigravity. The CLI is how the plan stays in this repo. It is not a second install.
+This is the Hamster product: Agent Plugins skills and hosted MCP on every supported client, plus generated native execution workers on Claude Code where that client registers them. The CLI is how the plan stays in this repo. It is not a second install.
 
 ## Install
 
@@ -61,7 +61,7 @@ agy plugin install https://github.com/gethamster/cli
 
 ## After install
 
-1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`. Your client owns the Hamster sign-in.
+1. **Talk** — hosted MCP at `https://tryhamster.com/mcp`, or `hamster chat` when MCP tools are unavailable and the CLI is signed in. Your client owns the Hamster sign-in.
 2. **Plan on disk** — say Install Hamster, or run ship. The setup skill installs the CLI if needed, runs `hamster auth login`, and syncs the plan.
 3. **Ship** — execute the brief already on disk. Nothing runs automatically on session start.
 
@@ -72,7 +72,7 @@ Claude Code lists these as `/hamster:<skill>`. Cursor lists them as `/<skill>`. 
 | Skill | Persona | Description |
 |-------|---------|-------------|
 | `/hamster:setup` | — | Install the CLI, sign in, and sync the plan into this repo |
-| `/hamster:ask-hamster [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work via hosted MCP |
+| `/hamster:ask-hamster [request]` | Workspace Copilot | Connect current code with workspace priorities, blockers, blueprints, or related work (hosted MCP preferred; `hamster chat` fallback) |
 | `/hamster:ship [slug-or-url]` | Release Engineer | Ship a brief: merge base, implement in parallel, test, review, bisectable commits, PR |
 | `/hamster:plan-hamster [slug-or-url]` | Tech Lead + CEO/Eng modes | Analyze brief with optional founder or architecture review |
 | `/hamster:resume-hamster [slug]` | — | Resume interrupted execution from where you left off |
@@ -180,7 +180,7 @@ Produces: metrics table, hourly distribution, session analysis, hotspots, PR siz
 
 Canonical worker protocols live in `skills/ship/references/agents/`. Root `agents/task-executor.md` and `agents/wave-reviewer.md` are generated Claude Code native adapters (registration + model metadata) over those bodies — run `node scripts/sync-adapters.mjs` after editing the canonical files; CI checks drift. Ship prefers the registered native agent when the client exposes it (Claude Code does), otherwise launches a generic subagent and injects the matching canonical body, otherwise runs the same protocol inline. On the generic path, prefer the strongest available coding model for task-executor and a mid-tier model for wave-reviewer when the client can pin one; otherwise inherit. Wave scheduling, branch creation, commits, and PR creation stay inline.
 
-Every skill directory is self-contained: no SKILL.md reads a sibling skill's files, because clients are free to install or load one skill on its own. Shared material — the readiness scripts under `scripts/`, and the protocols under `references/` that resume-hamster and plan-hamster re-enter — is duplicated into each skill that needs it, and `scripts/validate-plugin.mjs` hashes every copy and fails the build if they drift apart.
+Every skill directory is self-contained: no SKILL.md reads a sibling skill's files, because clients are free to install or load one skill on its own. Each skill is `SKILL.md` plus optional `scripts/` and `references/`; longer procedures live in `references/` so the skill body stays within client size limits (Codex reads the first 8,000 bytes). Shared material — readiness scripts under each skill's `scripts/`, and protocols under `references/` that plan-hamster and resume-hamster re-enter — is duplicated into every skill that needs it, and `scripts/validate-plugin.mjs` hashes every copy and fails the build if they drift apart. Root `scripts/` is maintainer tooling (`sync-adapters.mjs`, `validate-plugin.mjs`); it is not part of the installed skill surface.
 
 **Editing shared material is a multi-file edit.** The first path in each group below is the source of truth; the rest are copies that must stay byte-identical. Change the source, copy it over the others, then run the validator — it names the exact `cp` commands when a group has drifted.
 
@@ -245,6 +245,7 @@ The plugin package and source files in this repository are licensed under MIT. P
 | `hamster init` | Initialize Hamster data and run first sync |
 | `hamster sync` | One-time sync from Hamster Studio |
 | `hamster sync --watch` | Continuous real-time sync via WebSocket |
+| `hamster chat "<request>"` | Ask Hamster from the terminal (`--continue` for follow-ups); same ask path as hosted MCP when plugin tools are unavailable |
 | `hamster status` | Show sync status and statistics (`hamster --no-tui status` for plain output, which is what the skills' readiness gate runs) |
 | `hamster task status <id> <status>` | Update task status (`todo`, `in_progress`, `done`) |
 | `hamster brief status <slug> <status>` | Update brief status |
