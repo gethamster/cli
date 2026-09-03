@@ -27,12 +27,19 @@ function addError(message) {
   errors.push(message);
 }
 
+function isNotFound(error) {
+  return error?.code === "ENOENT";
+}
+
 async function pathExists(targetPath) {
   try {
     await fs.access(targetPath);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (isNotFound(error)) {
+      return false;
+    }
+    throw error;
   }
 }
 
@@ -40,8 +47,12 @@ async function readJsonFile(filePath, context) {
   let raw;
   try {
     raw = await fs.readFile(filePath, "utf8");
-  } catch {
-    addError(`${context} is missing: ${filePath}`);
+  } catch (error) {
+    if (isNotFound(error)) {
+      addError(`${context} is missing: ${filePath}`);
+    } else {
+      addError(`${context} could not be read (${filePath}): ${error.message}`);
+    }
     return null;
   }
 
@@ -128,9 +139,13 @@ async function validateReferencedPath(pluginDir, fieldName, pathValue, pluginNam
   }
 
   const resolved = path.resolve(pluginDir, pathValue);
-  const exists = await pathExists(resolved);
-  if (!exists) {
-    addError(`${pluginName}: field "${fieldName}" references missing path "${pathValue}".`);
+  try {
+    const exists = await pathExists(resolved);
+    if (!exists) {
+      addError(`${pluginName}: field "${fieldName}" references missing path "${pathValue}".`);
+    }
+  } catch (error) {
+    addError(`${pluginName}: field "${fieldName}" could not access "${pathValue}": ${error.message}`);
   }
 }
 
@@ -517,10 +532,14 @@ async function validateDuplicateParity() {
       let raw;
       try {
         raw = await fs.readFile(path.join(repoRoot, relativePath));
-      } catch {
-        addError(
-          `Duplicated file is missing: ${relativePath}. Every skill needs its own copy — run \`cp ${source} ${relativePath}\`.`
-        );
+      } catch (error) {
+        if (isNotFound(error)) {
+          addError(
+            `Duplicated file is missing: ${relativePath}. Every skill needs its own copy — run \`cp ${source} ${relativePath}\`.`
+          );
+        } else {
+          addError(`Duplicated file could not be read (${relativePath}): ${error.message}`);
+        }
         continue;
       }
       digests.set(relativePath, createHash("sha256").update(raw).digest("hex"));
@@ -590,23 +609,27 @@ function summarizeAndExit() {
 }
 
 async function main() {
-  const rootManifest = await validateRootPlugin();
-  const version = rootManifest?.version ?? null;
-  await validateCursor(version);
-  await validateClaude(version);
-  await validateCodex(version);
-  await validateCodexCatalog();
-  await validateNoAntigravityNest();
-  await validateSkillsAreSelfContained();
-  await validateSkillLocalReferences();
-  await validateDuplicateParity();
-  await validateSkillSizeBudget();
-  await validateLayout();
-  {
-    const { errors: adapterErrors } = await syncAdapters({ check: true });
-    for (const error of adapterErrors) {
-      addError(error);
+  try {
+    const rootManifest = await validateRootPlugin();
+    const version = rootManifest?.version ?? null;
+    await validateCursor(version);
+    await validateClaude(version);
+    await validateCodex(version);
+    await validateCodexCatalog();
+    await validateNoAntigravityNest();
+    await validateSkillsAreSelfContained();
+    await validateSkillLocalReferences();
+    await validateDuplicateParity();
+    await validateSkillSizeBudget();
+    await validateLayout();
+    {
+      const { errors: adapterErrors } = await syncAdapters({ check: true });
+      for (const error of adapterErrors) {
+        addError(error);
+      }
     }
+  } catch (error) {
+    addError(error.message);
   }
   summarizeAndExit();
 }

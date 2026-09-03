@@ -14,7 +14,7 @@ Launch a worker for EVERY **task-executor** in this wave in one batch, using wha
 
 **Delivery order** (same behavioral contract; stronger hosts keep stronger primitives):
 
-1. **Registered native agent** — if this client exposes a plugin/native agent named `task-executor` (Claude Code and Cursor do), launch that. Native discovery, isolated context, and Claude model metadata (`model: opus`) come with the registration.
+1. **Registered native agent** — if this client exposes a plugin/native agent named `task-executor` (Claude Code does), launch that. Native discovery, isolated context, and Claude model metadata (`model: opus`) come with the registration.
 2. **Generic subagent + canonical body** — otherwise launch a generic subagent / worker and inject `references/agents/task-executor.md` from this skill directory as its full instructions. Prefer the client's strongest available coding model when the client lets you pin a model; otherwise inherit.
 3. **Inline** — if the client has no subagent/worker primitive, execute that same protocol in this session.
 

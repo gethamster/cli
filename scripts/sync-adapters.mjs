@@ -97,8 +97,14 @@ export async function syncAdapters({ check = false } = {}) {
     let body;
     try {
       body = await fs.readFile(sourcePath, "utf8");
-    } catch {
-      errors.push(`Missing canonical agent body: ${path.relative(repoRoot, sourcePath)}`);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        errors.push(`Missing canonical agent body: ${path.relative(repoRoot, sourcePath)}`);
+      } else {
+        errors.push(
+          `Could not read canonical agent body ${path.relative(repoRoot, sourcePath)}: ${error.message}`
+        );
+      }
       continue;
     }
 
@@ -108,10 +114,16 @@ export async function syncAdapters({ check = false } = {}) {
       let existing;
       try {
         existing = await fs.readFile(targetPath, "utf8");
-      } catch {
-        errors.push(
-          `Generated agent missing: ${path.relative(repoRoot, targetPath)}. Run \`node scripts/sync-adapters.mjs\`.`
-        );
+      } catch (error) {
+        if (error.code === "ENOENT") {
+          errors.push(
+            `Generated agent missing: ${path.relative(repoRoot, targetPath)}. Run \`node scripts/sync-adapters.mjs\`.`
+          );
+        } else {
+          errors.push(
+            `Could not read generated agent ${path.relative(repoRoot, targetPath)}: ${error.message}`
+          );
+        }
         continue;
       }
 
