@@ -1,0 +1,125 @@
+name: MCP Registry
+
+# Kept separate from the plugin package workflow: a plugin release is a version
+# in plugin.json on main and a tag left unused costs nothing, while a registry
+# version is published once and can never be edited afterwards, so publishing
+# here is a deliberate manual action.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "server.json version to publish (must match the file)"
+        required: true
+        type: string
+      publish:
+        description: "Publish to the official MCP Registry (leave off to only run the gates)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run registry metadata tests
+        run: node --test scripts/test-registry.mjs
+      - name: Validate server.json
+        run: node scripts/validate-registry.mjs
+
+  conformance:
+    name: Remote connector conformance
+    # The authenticated half needs a workspace token, so it cannot run on a
+    # pull request from a fork.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Exercise the published endpoint
+        env:
+          HAMSTER_MCP_TOKEN: ${{ secrets.HAMSTER_MCP_CONFORMANCE_TOKEN }}
+        run: node scripts/mcp-conformance.mjs
+
+  publish:
+    name: Publish to the official registry
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: [validate, conformance]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The dispatcher types the version they believe they are shipping. A
+      # mismatch means the checkout is not the release they think it is.
+      - name: Confirm the requested version is the committed one
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          committed="$(jq -r '.version' server.json)"
+          if [ "$committed" != "$REQUESTED" ]; then
+            echo "server.json is at $committed but the run requested $REQUESTED" >&2
+            exit 1
+          fi
+          echo "version=$committed" >> "$GITHUB_ENV"
+
+      # Published versions are immutable, so a re-run of an already published
+      # version is reported and skipped rather than failed. A 404 is the
+      # unpublished-server case; any other failure must not look like one.
+      - name: Skip if this version is already published
+        run: |
+          set -euo pipefail
+          status="$(curl -sS -o versions.json -w '%{http_code}' "https://registry.modelcontextprotocol.io/v0.1/servers/com.tryhamster%2Fhamster/versions")"
+          case "$status" in
+            200) ;;
+            404) echo '{}' > versions.json ;;
+            *) echo "registry versions lookup returned HTTP $status" >&2; exit 1 ;;
+          esac
+          published="$(jq -r --arg v "$version" '.servers // [] | any(.server.version == $v)' versions.json)"
+          if [ "$published" = true ]; then
+            echo "com.tryhamster/hamster $version is already published; nothing to do."
+            echo "already_published=true" >> "$GITHUB_ENV"
+          else
+            echo "already_published=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install mcp-publisher
+        if: env.already_published == 'false'
+        env:
+          MCP_PUBLISHER_VERSION: v1.8.1
+        run: |
+          set -euo pipefail
+          curl -fL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      # Domain authentication: the registry fetches the public key from
+      # https://tryhamster.com/.well-known/mcp-registry-auth and accepts any
+      # signature from the matching private key, so that key lives only in this
+      # repository's secrets.
+      - name: Authenticate to the registry
+        if: env.already_published == 'false'
+        env:
+          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+        run: ./mcp-publisher login http --domain tryhamster.com --private-key "$MCP_REGISTRY_PRIVATE_KEY"
+
+      - name: Publish server.json
+        if: env.already_published == 'false'
+        run: ./mcp-publisher publish
+
+      - name: Confirm the version is live
+        if: env.already_published == 'false'
+        run: |
+          set -euo pipefail
+          body="$(curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/com.tryhamster%2Fhamster/versions")"
+          echo "$body" | jq -e --arg v "$version" '.servers | any(.server.version == $v)' >/dev/null
+          echo "com.tryhamster/hamster $version is live."
