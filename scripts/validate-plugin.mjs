@@ -18,6 +18,9 @@ const repoRoot = process.cwd();
 const errors = [];
 
 const pluginNamePattern = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
+// plugin.yml derives the public plugin-v<version> git tag from this value, so a
+// malformed version must fail on the PR rather than when the tag job runs on main.
+const pluginVersionPattern = /^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$/;
 const rootPluginFields = new Set([
   "$schema",
   "name",
@@ -243,6 +246,8 @@ async function validateRootPlugin() {
 
   if (typeof manifest.version !== "string" || manifest.version.length === 0) {
     addError('Root plugin.json "version" is required.');
+  } else if (!pluginVersionPattern.test(manifest.version)) {
+    addError(`Root plugin.json "version" must be semver-like, got "${manifest.version}".`);
   }
 
   if (manifest.license !== "MIT") {

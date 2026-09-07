@@ -1,8 +1,11 @@
-name: Validate plugin package
+name: Plugin package
 
 on:
   push:
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -18,3 +21,59 @@ jobs:
         run: node scripts/sync-adapters.mjs --check
       - name: Validate plugin package
         run: node scripts/validate-plugin.mjs
+
+  # Bumping "version" in the root plugin.json on main publishes plugin-v<version>,
+  # so an install can pin an exact plugin version. Published tags are never
+  # deleted or moved.
+  #
+  # Never turn this into a GitHub Release: releases/latest on this repo is the CLI
+  # binary download channel, so a plugin-named Release would take over Latest and
+  # break binary downloads and self-updates.
+  tag:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read plugin version
+        id: plugin
+        run: |
+          SEMVER='^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'
+          VERSION="$(node -p "require('./plugin.json').version ?? ''")"
+          # =~ anchors to the whole string; grep would anchor per line and let a
+          # newline smuggle a second assignment into $GITHUB_OUTPUT.
+          if [[ ! "$VERSION" =~ $SEMVER ]]; then
+            echo "Root plugin.json version \"${VERSION}\" is empty or not semver-ish." >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Publish plugin version tag
+        env:
+          VERSION: ${{ steps.plugin.outputs.version }}
+        run: |
+          TAG="plugin-v${VERSION}"
+          # ^{} peels an annotated tag to its commit; without it this reports the
+          # tag-object SHA, which resolves to nothing when a human looks it up.
+          tag_commit() { git ls-remote --tags origin "refs/tags/$1" "refs/tags/$1^{}" | tail -1 | cut -f1; }
+          EXISTING="$(tag_commit "$TAG")"
+          if [ -n "$EXISTING" ]; then
+            echo "${TAG} already exists on origin at ${EXISTING}; nothing to publish."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$TAG" -m "hamster plugin ${VERSION}" "$GITHUB_SHA"
+          if git push origin "refs/tags/${TAG}"; then
+            echo "Published ${TAG} -> ${GITHUB_SHA}."
+            exit 0
+          fi
+          # Another main push carrying this version can publish the tag between the
+          # check above and this push; losing that race is a no-op, not a failure.
+          RACED="$(tag_commit "$TAG")"
+          if [ -z "$RACED" ]; then
+            echo "Pushing ${TAG} failed and it is not on origin." >&2
+            exit 1
+          fi
+          echo "${TAG} was published concurrently at ${RACED}; nothing to publish."
