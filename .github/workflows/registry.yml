@@ -3,15 +3,22 @@ name: MCP Registry
 # Kept separate from the plugin package workflow: a plugin release is a version
 # in plugin.json on main and a tag left unused costs nothing, while a registry
 # version is published once and can never be edited afterwards, so publishing
-# here is a deliberate manual action.
+# here is a deliberate manual action. The metadata gates run here too rather
+# than as steps in plugin.yml so registry validation reports as its own status
+# check.
 on:
   push:
   pull_request:
+  # The registry entry names a version the deployment must actually report, and
+  # nothing in this repository changes the deployment, so the drift can only be
+  # caught by asking the endpoint on a timer.
+  schedule:
+    - cron: "0 14 * * 1"
   workflow_dispatch:
     inputs:
       version:
-        description: "server.json version to publish (must match the file)"
-        required: true
+        description: "server.json version to publish (only read when publishing)"
+        required: false
         type: string
       publish:
         description: "Publish to the official MCP Registry (leave off to only run the gates)"
@@ -38,9 +45,11 @@ jobs:
 
   conformance:
     name: Remote connector conformance
-    # The authenticated half needs a workspace token, so it cannot run on a
-    # pull request from a fork.
-    if: github.event_name == 'workflow_dispatch'
+    # No push to this repository changes the deployed server, so running this
+    # per-push would redden unrelated pull requests during a production OAuth
+    # incident and catch nothing this repository caused. It also needs a
+    # workspace token, which a fork cannot have.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +59,7 @@ jobs:
       - name: Exercise the published endpoint
         env:
           HAMSTER_MCP_TOKEN: ${{ secrets.HAMSTER_MCP_CONFORMANCE_TOKEN }}
-        run: node scripts/mcp-conformance.mjs
+        run: node scripts/verify-connector.mjs
 
   publish:
     name: Publish to the official registry
@@ -61,7 +70,9 @@ jobs:
       - uses: actions/checkout@v4
 
       # The dispatcher types the version they believe they are shipping. A
-      # mismatch means the checkout is not the release they think it is.
+      # mismatch means the checkout is not the release they think it is. The
+      # name is read from the same file so the registry lookups below cannot
+      # drift from what gets published.
       - name: Confirm the requested version is the committed one
         env:
           REQUESTED: ${{ inputs.version }}
@@ -69,10 +80,15 @@ jobs:
           set -euo pipefail
           committed="$(jq -r '.version' server.json)"
           if [ "$committed" != "$REQUESTED" ]; then
-            echo "server.json is at $committed but the run requested $REQUESTED" >&2
+            echo "server.json is at $committed but the run requested ${REQUESTED:-<empty>}" >&2
             exit 1
           fi
-          echo "version=$committed" >> "$GITHUB_ENV"
+          name="$(jq -r '.name' server.json)"
+          {
+            echo "version=$committed"
+            echo "server_name=$name"
+            echo "server_name_encoded=${name//\//%2F}"
+          } >> "$GITHUB_ENV"
 
       # Published versions are immutable, so a re-run of an already published
       # version is reported and skipped rather than failed. A 404 is the
@@ -80,7 +96,7 @@ jobs:
       - name: Skip if this version is already published
         run: |
           set -euo pipefail
-          status="$(curl -sS -o versions.json -w '%{http_code}' "https://registry.modelcontextprotocol.io/v0.1/servers/com.tryhamster%2Fhamster/versions")"
+          status="$(curl -sS -o versions.json -w '%{http_code}' "https://registry.modelcontextprotocol.io/v0.1/servers/${server_name_encoded}/versions")"
           case "$status" in
             200) ;;
             404) echo '{}' > versions.json ;;
@@ -88,11 +104,25 @@ jobs:
           esac
           published="$(jq -r --arg v "$version" '.servers // [] | any(.server.version == $v)' versions.json)"
           if [ "$published" = true ]; then
-            echo "com.tryhamster/hamster $version is already published; nothing to do."
+            echo "$server_name $version is already published; nothing to do."
             echo "already_published=true" >> "$GITHUB_ENV"
           else
             echo "already_published=false" >> "$GITHUB_ENV"
           fi
+
+      # The com.tryhamster namespace is authorized by a key served from the
+      # domain by a different repository. Assert it is reachable before asking
+      # the registry to fetch it, so a missing deploy fails here with the URL
+      # rather than inside an authentication error.
+      - name: Confirm the domain proof is live
+        if: env.already_published == 'false'
+        run: |
+          set -euo pipefail
+          proof="$(curl -fsS https://tryhamster.com/.well-known/mcp-registry-auth)"
+          case "$proof" in
+            "v=MCPv1; k=ed25519; p="*) echo "domain proof is live" ;;
+            *) echo "unexpected proof document: $proof" >&2; exit 1 ;;
+          esac
 
       - name: Install mcp-publisher
         if: env.already_published == 'false'
@@ -101,6 +131,13 @@ jobs:
         run: |
           set -euo pipefail
           curl -fL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      # The local validator owns the Hamster-specific rules; this checks the
+      # same file against the live registry schema, which can tighten without
+      # this repository noticing.
+      - name: Validate server.json against the registry
+        if: env.already_published == 'false'
+        run: ./mcp-publisher validate
 
       # Domain authentication: the registry fetches the public key from
       # https://tryhamster.com/.well-known/mcp-registry-auth and accepts any
@@ -120,6 +157,6 @@ jobs:
         if: env.already_published == 'false'
         run: |
           set -euo pipefail
-          body="$(curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/com.tryhamster%2Fhamster/versions")"
+          body="$(curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/${server_name_encoded}/versions")"
           echo "$body" | jq -e --arg v "$version" '.servers | any(.server.version == $v)' >/dev/null
-          echo "com.tryhamster/hamster $version is live."
+          echo "$server_name $version is live."

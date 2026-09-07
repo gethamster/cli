@@ -9,7 +9,7 @@
  * surface — has to be checked from outside the deployment, against the URL
  * published in server.json.
  *
- * Usage: HAMSTER_MCP_TOKEN=<bearer> node scripts/mcp-conformance.mjs
+ * Usage: HAMSTER_MCP_TOKEN=<bearer> node scripts/verify-connector.mjs
  *        HAMSTER_MCP_URL overrides the endpoint (defaults to server.json).
  */
 
@@ -68,6 +68,7 @@ const EXPECTED_TOOLS = new Map([
 ]);
 
 const token = process.env.HAMSTER_MCP_TOKEN ?? "";
+const authenticated = token !== "";
 const server = JSON.parse(await readFile(path.join(repoRoot, "server.json"), "utf8"));
 const endpoint = process.env.HAMSTER_MCP_URL ?? server.remotes[0].url;
 const origin = new URL(endpoint).origin;
@@ -75,12 +76,19 @@ const origin = new URL(endpoint).origin;
 const results = [];
 let rpcId = 0;
 
+const protocolVersion = "2025-06-18";
+
 function post(body, bearer) {
   const headers = {
     "content-type": "application/json",
     // The Streamable HTTP handler rejects a POST that does not accept both.
     accept: "application/json, text/event-stream",
   };
+  if (body.method !== "initialize") {
+    // Required on every request after the handshake. A client that omits it is
+    // not exercising the transport a real connector speaks.
+    headers["mcp-protocol-version"] = protocolVersion;
+  }
   if (bearer) {
     headers.authorization = `Bearer ${bearer}`;
   }
@@ -158,6 +166,17 @@ async function check(name, fn) {
   }
 }
 
+// Running without a token is a supported half-run: the OAuth discovery checks
+// above need no credential. Skipping the rest as a group reports the missing
+// token once instead of as several unrelated-looking failures.
+async function checkAuthenticated(name, fn) {
+  if (!authenticated) {
+    results.push({ name, ok: false, skipped: true, detail: "HAMSTER_MCP_TOKEN is not set" });
+    return;
+  }
+  await check(name, fn);
+}
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -209,8 +228,7 @@ await check("an invalid token is rejected with 401", async () => {
   return `HTTP ${res.status}`;
 });
 
-await check("initialize reports the published server identity", async () => {
-  assert(token !== "", "HAMSTER_MCP_TOKEN is not set");
+await checkAuthenticated("initialize reports the published server identity", async () => {
   const result = await rpc("initialize", {
     protocolVersion: "2025-06-18",
     capabilities: {},
@@ -225,8 +243,7 @@ await check("initialize reports the published server identity", async () => {
   return `${info.name} ${info.version}`;
 });
 
-await check("tools/list matches the published tool surface", async () => {
-  assert(token !== "", "HAMSTER_MCP_TOKEN is not set");
+await checkAuthenticated("tools/list matches the published tool surface", async () => {
   const collected = [];
   let cursor;
   do {
@@ -244,7 +261,7 @@ await check("tools/list matches the published tool surface", async () => {
   return `${tools.length} tools`;
 });
 
-await check("every tool carries a title and safety hints", async () => {
+await checkAuthenticated("every tool carries a title and safety hints", async () => {
   assert(tools.length > 0, "no tools were listed");
   const problems = [];
   for (const tool of tools) {
@@ -267,7 +284,7 @@ await check("every tool carries a title and safety hints", async () => {
   return `${tools.length} annotated`;
 });
 
-await check("read-only hints match the published classification", async () => {
+await checkAuthenticated("read-only hints match the published classification", async () => {
   assert(tools.length > 0, "no tools were listed");
   const wrong = tools
     .filter((tool) => (tool.annotations?.readOnlyHint === true) !== EXPECTED_TOOLS.get(tool.name))
@@ -276,7 +293,7 @@ await check("read-only hints match the published classification", async () => {
   return `${[...EXPECTED_TOOLS.values()].filter(Boolean).length} read-only`;
 });
 
-await check("representative reads succeed", async () => {
+await checkAuthenticated("representative reads succeed", async () => {
   const accounts = await callTool("list_accounts");
   assert(!accounts.isError, `list_accounts failed: ${accounts.text}`);
   assert((accounts.data?.accounts ?? []).length > 0, "list_accounts returned no accounts");
@@ -293,13 +310,13 @@ await check("representative reads succeed", async () => {
   return `${accounts.data.accounts.length} accounts, ${briefs.data.briefs.length} brief read`;
 });
 
-await check("a bad identifier is a tool error, not a transport failure", async () => {
+await checkAuthenticated("a bad identifier is a tool error, not a transport failure", async () => {
   const result = await callTool("get_brief", { brief_id: "00000000-0000-0000-0000-000000000000" });
   assert(result.isError, "get_brief on a nonexistent id reported success");
   return (result.text ?? "").slice(0, 80);
 });
 
-await check("write round trip creates, updates, and cleans up", async () => {
+await checkAuthenticated("write round trip creates, updates, and cleans up", async () => {
   const stamp = new Date().toISOString();
   const created = await callTool("create_task", { title: `MCP conformance ${stamp}` });
   assert(!created.isError, `create_task failed: ${created.text}`);
@@ -331,9 +348,12 @@ await check("write round trip creates, updates, and cleans up", async () => {
 const nameWidth = Math.max(...results.map((result) => result.name.length));
 console.log(`Endpoint: ${endpoint}`);
 for (const result of results) {
-  console.log(`${result.ok ? "PASS" : "FAIL"}  ${result.name.padEnd(nameWidth)}  ${result.detail}`);
+  const verdict = result.ok ? "PASS" : result.skipped ? "SKIP" : "FAIL";
+  console.log(`${verdict}  ${result.name.padEnd(nameWidth)}  ${result.detail}`);
 }
 
-const failed = results.filter((result) => !result.ok).length;
-console.log(`${results.length - failed}/${results.length} checks passed.`);
-process.exit(failed === 0 ? 0 : 1);
+const passed = results.filter((result) => result.ok).length;
+const skipped = results.filter((result) => result.skipped).length;
+console.log(`${passed}/${results.length} checks passed${skipped > 0 ? `, ${skipped} skipped` : ""}.`);
+// A skipped check leaves the gate unproven, so it is not a pass.
+process.exit(passed === results.length ? 0 : 1);

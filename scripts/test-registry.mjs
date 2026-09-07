@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +22,6 @@ after(async () => {
 async function makeFixture() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "hamster-registry-"));
   fixtures.push(dir);
-  await mkdir(dir, { recursive: true });
   for (const entry of FIXTURE_ENTRIES) {
     await cp(path.join(repoRoot, entry), path.join(dir, entry));
   }
@@ -50,7 +49,8 @@ function runValidator(cwd) {
 async function patchServer(cwd, patch) {
   const serverPath = path.join(cwd, "server.json");
   const server = JSON.parse(await readFile(serverPath, "utf8"));
-  await writeFile(serverPath, `${JSON.stringify(patch(server) ?? server, null, 2)}\n`);
+  patch(server);
+  await writeFile(serverPath, `${JSON.stringify(server, null, 2)}\n`);
 }
 
 test("the committed server.json passes", async () => {

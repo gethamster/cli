@@ -40,7 +40,7 @@ function addError(message) {
   errors.push(message);
 }
 
-async function readJsonFile(filePath, context) {
+async function readJsonObject(filePath, context) {
   let raw;
   try {
     raw = await fs.readFile(filePath, "utf8");
@@ -159,7 +159,7 @@ async function validateRemote(remotes) {
   // validate-plugin.mjs already keeps those three files in agreement. Anchoring
   // here means a moved endpoint cannot be published to the registry while the
   // installed plugin still points at the old one.
-  const pluginMcp = await readJsonFile(path.join(repoRoot, "mcp.json"), "Root mcp.json");
+  const pluginMcp = await readJsonObject(path.join(repoRoot, "mcp.json"), "Root mcp.json");
   if (!pluginMcp) {
     return;
   }
@@ -173,7 +173,7 @@ async function validateRemote(remotes) {
 
 async function main() {
   try {
-    const server = await readJsonFile(path.join(repoRoot, "server.json"), "server.json");
+    const server = await readJsonObject(path.join(repoRoot, "server.json"), "server.json");
     if (server) {
       for (const key of Object.keys(server)) {
         if (key === "packages") {

@@ -65,12 +65,6 @@ agy plugin install https://github.com/gethamster/cli
 2. **Plan on disk** — say Install Hamster, or run ship. The setup skill installs the CLI if needed, runs `hamster auth login`, and syncs the plan.
 3. **Ship** — execute the brief already on disk. Nothing runs automatically on session start.
 
-## Connect without the plugin
-
-Some clients list Hamster as a remote MCP connector, and you can also add `https://tryhamster.com/mcp` as a custom connector by hand. That path signs you in through OAuth and gives you the 39 hosted MCP tools — search, briefs, plans, tasks, initiatives, goals, documents, notes, chat, and the context graph.
-
-It gives you nothing else. The skills listed below, the slash commands, the CLI, the plan on disk, and ship all ship in the plugin, so install the plugin when you want to execute work in a repo. See the [MCP server docs](https://tryhamster.com/docs/hamster-studio/mcp) for the tool list and the sign-in flow.
-
 ## Skills
 
 Claude Code lists these as `/hamster:<skill>`. Cursor lists them as `/<skill>`. The table uses the Claude form.
@@ -186,7 +180,7 @@ Produces: metrics table, hourly distribution, session analysis, hotspots, PR siz
 
 Canonical worker protocols live in `skills/ship/references/agents/`. Root `agents/task-executor.md` and `agents/wave-reviewer.md` are generated Claude Code native adapters (registration + model metadata) over those bodies — run `node scripts/sync-adapters.mjs` after editing the canonical files; CI checks drift. Ship prefers the registered native agent when the client exposes it (Claude Code does), otherwise launches a generic subagent and injects the matching canonical body, otherwise runs the same protocol inline. On the generic path, prefer the strongest available coding model for task-executor and a mid-tier model for wave-reviewer when the client can pin one; otherwise inherit. Wave scheduling, branch creation, commits, and PR creation stay inline.
 
-Every skill directory is self-contained: no SKILL.md reads a sibling skill's files, because clients are free to install or load one skill on its own. Each skill is `SKILL.md` plus optional `scripts/` and `references/`; longer procedures live in `references/` so the skill body stays within client size limits (Codex reads the first 8,000 bytes). Shared material — readiness scripts under each skill's `scripts/`, and protocols under `references/` that plan-hamster and resume-hamster re-enter — is duplicated into every skill that needs it, and `scripts/validate-plugin.mjs` hashes every copy and fails the build if they drift apart. Root `scripts/` is maintainer tooling (`sync-adapters.mjs` and `validate-plugin.mjs` for the plugin; `validate-registry.mjs` and `mcp-conformance.mjs` for the registry listing); it is not part of the installed skill surface.
+Every skill directory is self-contained: no SKILL.md reads a sibling skill's files, because clients are free to install or load one skill on its own. Each skill is `SKILL.md` plus optional `scripts/` and `references/`; longer procedures live in `references/` so the skill body stays within client size limits (Codex reads the first 8,000 bytes). Shared material — readiness scripts under each skill's `scripts/`, and protocols under `references/` that plan-hamster and resume-hamster re-enter — is duplicated into every skill that needs it, and `scripts/validate-plugin.mjs` hashes every copy and fails the build if they drift apart. Root `scripts/` is maintainer tooling (`sync-adapters.mjs` and `validate-plugin.mjs` for the plugin; `validate-registry.mjs` and `verify-connector.mjs` for the registry listing); it is not part of the installed skill surface.
 
 **Editing shared material is a multi-file edit.** The first path in each group below is the source of truth; the rest are copies that must stay byte-identical. Change the source, copy it over the others, then run the validator — it names the exact `cp` commands when a group has drifted.
 
@@ -272,6 +266,12 @@ Skills read `.hamster/` in the current repo:
 ```
 
 Skills resolve the account directory from `HAMSTER_ACCOUNT_ID`, or by finding the one directory under `.hamster/` that contains `briefs/`. They stop and ask if more than one qualifies.
+
+## Advanced: hosted MCP without the plugin
+
+Some clients list Hamster as a remote MCP connector, and you can also add `https://tryhamster.com/mcp` as a custom connector by hand. That path signs you in through OAuth and gives you the hosted MCP tools — search, briefs, plans, tasks, initiatives, goals, documents, notes, chat, and the context graph.
+
+It gives you nothing else. The skills, the slash commands, the CLI, the plan on disk, and ship all ship in the plugin, so install the plugin when you want to execute work in a repo. See the [MCP server docs](https://tryhamster.com/docs/hamster-studio/mcp) for the tool list and the sign-in flow.
 
 ---
 
