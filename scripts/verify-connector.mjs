@@ -20,11 +20,11 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// The deployed tool names with their read-only bit, maintained by hand. Studio's
-// apps/mcp/internal/tools/annotations_test.go pins every hint against the
-// source; this baseline pins names and the read-only classification against
-// the deployment, so a tool added, removed, or flipped between read and write
-// without updating this list fails here. Version parity is a separate check.
+// The deployed tool names with their read-only bit, maintained by hand. The
+// server's own tests pin every hint against its source; this baseline pins
+// names and the read-only classification against the deployment, so a tool
+// added, removed, or flipped between read and write without updating this list
+// fails here. Version parity is a separate check.
 const EXPECTED_TOOLS = new Map([
   ["search", true],
   ["list_accounts", true],
