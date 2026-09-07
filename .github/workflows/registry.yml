@@ -47,8 +47,8 @@ jobs:
     name: Remote connector conformance
     # No push to this repository changes the deployed server, so running this
     # per-push would redden unrelated pull requests during a production OAuth
-    # incident and catch nothing this repository caused. It also needs a
-    # workspace token, which a fork cannot have.
+    # incident and catch nothing this repository caused. It also needs the
+    # conformance user's credentials, which a fork cannot have.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
@@ -56,9 +56,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Exercise the published endpoint
+      # /mcp accepts only Supabase session tokens, and a stored refresh token is
+      # rotated on first use, so each run signs the conformance user in fresh.
+      - name: Sign in the conformance user
         env:
-          HAMSTER_MCP_TOKEN: ${{ secrets.HAMSTER_MCP_CONFORMANCE_TOKEN }}
+          EMAIL: ${{ secrets.HAMSTER_CONFORMANCE_EMAIL }}
+          PASSWORD: ${{ secrets.HAMSTER_CONFORMANCE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          apikey="$(curl -fsS https://tryhamster.com/cli/config | jq -r '.realtime_api_key')"
+          token="$(jq -cn --arg e "$EMAIL" --arg p "$PASSWORD" '{email:$e,password:$p}' \
+            | curl -fsS -X POST 'https://tryhamster.com/auth/v1/token?grant_type=password' \
+                -H "apikey: $apikey" -H 'content-type: application/json' --data-binary @- \
+            | jq -re '.access_token')"
+          echo "::add-mask::$token"
+          echo "HAMSTER_MCP_TOKEN=$token" >> "$GITHUB_ENV"
+      - name: Exercise the published endpoint
         run: node scripts/verify-connector.mjs
       # The deployment check above proves the server reports server.json's
       # version; this proves the registry lists it. Without it a version bumped,
