@@ -94,6 +94,19 @@ test("non-ENOENT on plugin.json is reported as could not be read", async () => {
   assert.doesNotMatch(result.stderr, /Root plugin\.json is missing:/);
 });
 
+test("a non-semver root version fails validation", async () => {
+  const cwd = await makeTemp("hamster-plugin-version-");
+  await copyPackage(cwd);
+  const manifestPath = path.join(cwd, "plugin.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.version = "3.4";
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const result = await runValidator(cwd);
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /Root plugin\.json "version" must be semver-like, got "3\.4"/);
+});
+
 test("a missing referenced path fails validation", async () => {
   const cwd = await makeTemp("hamster-plugin-ref-");
   await copyPackage(cwd);
