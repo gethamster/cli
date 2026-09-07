@@ -348,7 +348,9 @@ async function validateClaude(version) {
   validateMarketplaceEntry("Claude marketplace.json", entry, version);
 }
 
-async function validateCodexCatalog() {
+// The catalog carries its own copy of the listing category, so it can drift out
+// of the directory's enum or away from the manifest without either file failing.
+async function validateCodexCatalog(manifestCategory) {
   const catalogPath = path.join(repoRoot, ".agents", "plugins", "marketplace.json");
   const catalog = await readJsonFile(catalogPath, "Codex marketplace catalog");
   if (!catalog) {
@@ -368,6 +370,265 @@ async function validateCodexCatalog() {
 
   if (typeof catalog.interface?.displayName !== "string" || catalog.interface.displayName.length === 0) {
     addError(".agents/plugins/marketplace.json must include interface.displayName.");
+  }
+
+  if (!codexCategories.has(entry.category)) {
+    addError(
+      `.agents/plugins/marketplace.json plugins[0].category must be one of ${[...codexCategories].join(", ")}, got ${JSON.stringify(entry.category)}.`
+    );
+  } else if (manifestCategory !== undefined && entry.category !== manifestCategory) {
+    addError(
+      `.agents/plugins/marketplace.json category "${entry.category}" does not match .codex-plugin/plugin.json interface.category "${manifestCategory}".`
+    );
+  }
+}
+
+// Every constant below is the published submission rule:
+// https://developers.openai.com/plugins/deploy/submission-errors
+// Package validation is looser than final directory submission (shortDescription
+// 240 vs 30, displayName 80 vs 30, defaultPrompt 512 vs 128); we gate on the
+// final numbers because passing those passes both.
+const codexCategories = new Set([
+  "Productivity",
+  "Creativity",
+  "Developer Tools",
+  "Business & Operations",
+  "Data & Analytics",
+  "Communication",
+  "Education & Research",
+  "Security",
+  "Finance",
+  "Healthcare",
+  "Travel",
+  "Entertainment",
+  "Other",
+]);
+const codexListing = {
+  displayName: { chars: 30 },
+  shortDescription: { chars: 30 },
+  longDescription: { chars: 4000, multiline: true },
+  developerName: { chars: 80 },
+  url: { chars: 1024 },
+  capabilities: { max: 20, chars: 120 },
+  defaultPrompt: { max: 3, chars: 128 },
+};
+const codexBrandColorPattern = /^#[0-9a-fA-F]{6}$/;
+// The directory also accepts .jpg and .webp; this package ships PNG and SVG, and
+// an extension we cannot verify byte-for-byte would pass on its name alone.
+const codexImageExtensions = new Set([".png", ".svg"]);
+const codexPngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const codexImageMaxBytes = 5 * 1024 * 1024;
+const codexImageMinPixels = 48;
+const codexImageMaxPixels = 4096;
+
+function codexError(field, message) {
+  addError(`Codex plugin.json interface.${field} ${message}`);
+}
+
+function requireCodexText(field, value, { chars, multiline = false }) {
+  if (typeof value !== "string" || value.length === 0) {
+    codexError(field, "must be a non-empty string.");
+    return false;
+  }
+  if (value.length > chars) {
+    codexError(field, `is ${value.length} chars; directory submission caps it at ${chars}.`);
+  }
+  if (!multiline && /[\r\n]/.test(value)) {
+    codexError(field, "must fit on one line.");
+  }
+  return true;
+}
+
+function requireCodexPath(field, value) {
+  if (typeof value !== "string" || value.length === 0) {
+    codexError(field, "must be a non-empty path.");
+    return false;
+  }
+  return true;
+}
+
+// Yields nothing when the array itself is wrong: per-entry errors under an
+// already-rejected count are noise.
+function codexEntries(field, value, max) {
+  if (!Array.isArray(value) || value.length === 0) {
+    codexError(field, "must be a non-empty array.");
+    return [];
+  }
+  if (value.length > max) {
+    codexError(field, `has ${value.length} entries; the directory allows at most ${max}.`);
+    return [];
+  }
+  return [...value.entries()];
+}
+
+function requireCodexHttpsUrl(field, value) {
+  if (!requireCodexText(field, value, codexListing.url)) {
+    return;
+  }
+  if (!value.startsWith("https://")) {
+    codexError(field, `must be https, got "${value}".`);
+  }
+}
+
+// Relative luminance and contrast per WCAG 2.x, which is what the directory's
+// brand-color contrast floors are stated against.
+function relativeLuminance(hex) {
+  const channels = [1, 3, 5].map((offset) => {
+    const value = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(hexA, hexB) {
+  const a = relativeLuminance(hexA);
+  const b = relativeLuminance(hexB);
+  const [light, dark] = a >= b ? [a, b] : [b, a];
+  return (light + 0.05) / (dark + 0.05);
+}
+
+function requireCodexBrandColor(field, value, against) {
+  if (typeof value !== "string" || !codexBrandColorPattern.test(value)) {
+    codexError(field, `must be a six-digit hex color, got ${JSON.stringify(value)}.`);
+    return;
+  }
+  const ratio = contrastRatio(value, against);
+  if (ratio < 2) {
+    codexError(
+      field,
+      `${value} has ${ratio.toFixed(2)}:1 contrast against ${against}; the directory requires at least 2:1.`
+    );
+  }
+}
+
+async function resolveCodexAsset(field, value) {
+  if (!value.startsWith("./")) {
+    codexError(field, `must start with "./", got "${value}".`);
+  }
+
+  if (!isSafeRelativePath(value)) {
+    codexError(field, `must be a relative path inside the package, got "${value}".`);
+    return null;
+  }
+
+  const resolved = path.resolve(repoRoot, value);
+  if (!(await pathExists(resolved))) {
+    codexError(field, `references missing path "${value}".`);
+    return null;
+  }
+
+  return resolved;
+}
+
+function requireCodexSquare(field, width, height, verb) {
+  if (width !== height) {
+    codexError(field, `${verb} ${width}x${height}; the directory requires a square image.`);
+  } else if (width < codexImageMinPixels || width > codexImageMaxPixels) {
+    codexError(
+      field,
+      `${verb} ${width}x${height}; the directory requires ${codexImageMinPixels}-${codexImageMaxPixels} pixels.`
+    );
+  }
+}
+
+async function validateCodexImage(field, value) {
+  const resolved = await resolveCodexAsset(field, value);
+  if (!resolved) {
+    return;
+  }
+
+  const extension = path.extname(value).toLowerCase();
+  if (!codexImageExtensions.has(extension)) {
+    codexError(field, `must end in ${[...codexImageExtensions].join(", ")}, got "${extension}".`);
+    return;
+  }
+
+  const buffer = await fs.readFile(resolved);
+  if (buffer.length > codexImageMaxBytes) {
+    codexError(field, `is ${buffer.length} bytes; the directory caps images at 5 MiB.`);
+  }
+
+  if (extension === ".svg") {
+    const svg = buffer.toString("utf8");
+    const viewBox = /viewBox="\s*[\d.]+\s+[\d.]+\s+([\d.]+)\s+([\d.]+)\s*"/.exec(svg);
+    if (!/<svg[\s>]/.test(svg)) {
+      codexError(field, "must have an <svg> root element.");
+    } else if (!viewBox) {
+      codexError(field, "must declare a numeric viewBox.");
+    } else {
+      requireCodexSquare(field, Number(viewBox[1]), Number(viewBox[2]), "viewBox is");
+    }
+    return;
+  }
+
+  if (!codexPngSignature.every((byte, index) => buffer[index] === byte)) {
+    codexError(field, `is named "${extension}" but its bytes are a different format.`);
+    return;
+  }
+
+  requireCodexSquare(field, buffer.readUInt32BE(16), buffer.readUInt32BE(20), "is");
+}
+
+async function validateCodexInterface(iface) {
+  for (const field of ["displayName", "developerName", "shortDescription", "longDescription"]) {
+    requireCodexText(field, iface[field], codexListing[field]);
+  }
+
+  if (!codexCategories.has(iface.category)) {
+    codexError(
+      "category",
+      `must be one of ${[...codexCategories].join(", ")}, got ${JSON.stringify(iface.category)}.`
+    );
+  }
+
+  for (const [index, capability] of codexEntries("capabilities", iface.capabilities, codexListing.capabilities.max)) {
+    requireCodexText(`capabilities[${index}]`, capability, codexListing.capabilities);
+  }
+
+  const seenPrompts = new Set();
+  for (const [index, prompt] of codexEntries("defaultPrompt", iface.defaultPrompt, codexListing.defaultPrompt.max)) {
+    if (!requireCodexText(`defaultPrompt[${index}]`, prompt, codexListing.defaultPrompt)) {
+      continue;
+    }
+    if (prompt.includes("@")) {
+      codexError(`defaultPrompt[${index}]`, 'must not mention another plugin with "@".');
+    }
+    const normalized = prompt.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
+    if (seenPrompts.has(normalized)) {
+      codexError(`defaultPrompt[${index}]`, "duplicates an earlier prompt.");
+    }
+    seenPrompts.add(normalized);
+  }
+
+  for (const field of ["websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"]) {
+    requireCodexHttpsUrl(field, iface[field]);
+  }
+
+  requireCodexBrandColor("brandColor", iface.brandColor, "#ffffff");
+  if (iface.brandColorDark !== undefined) {
+    requireCodexBrandColor("brandColorDark", iface.brandColorDark, "#212121");
+  }
+
+  for (const field of ["logo", "composerIcon"]) {
+    if (requireCodexPath(field, iface[field])) {
+      await validateCodexImage(field, iface[field]);
+    }
+  }
+  if (iface.logoDark !== undefined && requireCodexPath("logoDark", iface.logoDark)) {
+    await validateCodexImage("logoDark", iface.logoDark);
+  }
+
+  if (iface.screenshots === undefined) {
+    return;
+  }
+  if (!Array.isArray(iface.screenshots)) {
+    codexError("screenshots", "must be an array.");
+    return;
+  }
+  for (const [index, shot] of iface.screenshots.entries()) {
+    if (requireCodexPath(`screenshots[${index}]`, shot)) {
+      await resolveCodexAsset(`screenshots[${index}]`, shot);
+    }
   }
 }
 
@@ -389,21 +650,15 @@ async function validateCodex(version) {
     return;
   }
 
-  if (typeof manifest.interface.displayName !== "string" || manifest.interface.displayName.length === 0) {
-    addError('Codex plugin.json must include interface.displayName.');
-  }
-
-  if (typeof manifest.interface.logo !== "string" || manifest.interface.logo.length === 0) {
-    addError("Codex plugin.json must include interface.logo.");
-  } else {
-    await validateReferencedPath(repoRoot, "interface.logo", manifest.interface.logo, "codex");
-  }
+  await validateCodexInterface(manifest.interface);
 
   if (manifest.license !== "MIT") {
     addError('Codex plugin.json "license" must be "MIT".');
   }
 
   requireVersionParity("Codex plugin.json", manifest.version, version);
+
+  return manifest.interface.category;
 }
 
 async function validateMcpFiles() {
@@ -627,8 +882,8 @@ async function main() {
     const version = rootManifest?.version ?? null;
     await validateCursor(version);
     await validateClaude(version);
-    await validateCodex(version);
-    await validateCodexCatalog();
+    const codexCategory = await validateCodex(version);
+    await validateCodexCatalog(codexCategory);
     await validateNoAntigravityNest();
     await validateSkillsAreSelfContained();
     await validateSkillLocalReferences();
