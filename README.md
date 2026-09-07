@@ -269,7 +269,7 @@ Skills resolve the account directory from `HAMSTER_ACCOUNT_ID`, or by finding th
 
 ## Advanced: hosted MCP without the plugin
 
-Some clients list Hamster as a remote MCP connector, and you can also add `https://tryhamster.com/mcp` as a custom connector by hand. That path signs you in through OAuth and gives you the hosted MCP tools — search, briefs, plans, tasks, initiatives, goals, documents, notes, chat, and the context graph.
+Add `https://tryhamster.com/mcp` as a remote MCP connector in any client that supports one. That path signs you in through OAuth and gives you the hosted MCP tools — search, briefs, plans, tasks, initiatives, goals, documents, notes, chat, and the context graph.
 
 It gives you nothing else. The skills, the slash commands, the CLI, the plan on disk, and ship all ship in the plugin, so install the plugin when you want to execute work in a repo. See the [MCP server docs](https://tryhamster.com/docs/hamster-studio/mcp) for the tool list and the sign-in flow.
 
