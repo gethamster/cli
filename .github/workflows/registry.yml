@@ -60,6 +60,22 @@ jobs:
         env:
           HAMSTER_MCP_TOKEN: ${{ secrets.HAMSTER_MCP_CONFORMANCE_TOKEN }}
         run: node scripts/verify-connector.mjs
+      # The deployment check above proves the server reports server.json's
+      # version; this proves the registry lists it. Without it a version bumped,
+      # deployed, and never dispatched for publishing stays unlisted silently. A
+      # dispatch run skips this because it may be the publish that closes the gap.
+      - name: Confirm the committed version is listed in the registry
+        if: github.event_name == 'schedule'
+        run: |
+          set -euo pipefail
+          version="$(jq -r '.version' server.json)"
+          name="$(jq -r '.name' server.json)"
+          body="$(curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/${name//\//%2F}/versions")"
+          if ! echo "$body" | jq -e --arg v "$version" '.servers | any(.server.version == $v)' >/dev/null; then
+            echo "server.json is at $version but the registry does not list it; dispatch this workflow with publish=true." >&2
+            exit 1
+          fi
+          echo "$name $version is listed in the registry."
 
   publish:
     name: Publish to the official registry

@@ -167,8 +167,8 @@ async function check(name, fn) {
 }
 
 // Running without a token is a supported half-run: the OAuth discovery checks
-// above need no credential. Skipping the rest as a group reports the missing
-// token once instead of as several unrelated-looking failures.
+// need no credential. Skipping the rest as a group reports the missing token
+// once instead of as several unrelated-looking failures.
 async function checkAuthenticated(name, fn) {
   if (!authenticated) {
     results.push({ name, ok: false, skipped: true, detail: "HAMSTER_MCP_TOKEN is not set" });
@@ -230,7 +230,7 @@ await check("an invalid token is rejected with 401", async () => {
 
 await checkAuthenticated("initialize reports the published server identity", async () => {
   const result = await rpc("initialize", {
-    protocolVersion: "2025-06-18",
+    protocolVersion,
     capabilities: {},
     clientInfo: { name: "hamster-conformance", version: server.version },
   });
