@@ -256,6 +256,7 @@ Skills read `.hamster/` in the current repo:
 
 ```
 .hamster/
+  .state.json      # Sync metadata (don't edit)
   {account}/
     briefs/
       {brief-slug}/
@@ -265,7 +266,7 @@ Skills read `.hamster/` in the current repo:
     methods/         # Team conventions
 ```
 
-Skills resolve the account directory from `HAMSTER_ACCOUNT_ID`, or by finding the one directory under `.hamster/` that contains `briefs/`. They stop and ask if more than one qualifies.
+Skills take the account directory name from `account_slug` in `.state.json`. `HAMSTER_ACCOUNT_ID` holds an account UUID, so when it is set the skills check it against `account_id` and stop rather than guess.
 
 ---
 

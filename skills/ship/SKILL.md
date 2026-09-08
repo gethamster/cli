@@ -33,7 +33,7 @@ If it prints `SETUP_NEEDED` in Codex on macOS and `hamster` is already on `PATH`
 
 ## Setup
 
-Run prerequisites, account discovery, and live sync in ONE bash call:
+Read [brief-selection](references/brief-selection.md) and run **Account Resolution** first. On `ACCOUNT_UNRESOLVED`, follow its team-selection/re-sync guidance and stop. Then run prerequisites and live sync in ONE bash call, assigning `account` to the resolved filesystem slug (shell-quoted), not `HAMSTER_ACCOUNT_ID`:
 
 ```bash
 export PATH="$HOME/.hamster/bin:$PATH"
@@ -44,12 +44,7 @@ command -v gh >/dev/null 2>&1 || errors="${errors}gh CLI not found. Install from
 dirty=$(git status --porcelain 2>/dev/null | head -5)
 [ -n "$dirty" ] && errors="${errors}Uncommitted changes:\n${dirty}\n"
 if [ -n "$errors" ]; then printf "PREREQ_FAIL:\n$errors"; exit 1; fi
-account="${HAMSTER_ACCOUNT_ID:-}"
-if [ -z "$account" ]; then
-  account=$(for d in .hamster/*/; do [ -d "${d}briefs" ] && basename "$d"; done)
-  n=$(printf '%s\n' "$account" | grep -c .)
-  [ "$n" -eq 1 ] || { echo "ACCOUNT_UNRESOLVED: ${n} directories under .hamster/ contain briefs/; set HAMSTER_ACCOUNT_ID"; exit 1; }
-fi
+account="<resolved filesystem account slug>"
 repo=$(git rev-parse --show-toplevel 2>/dev/null)
 watch=""
 for pid in $(pgrep -f "hamster sync .*--watch" 2>/dev/null); do
@@ -63,7 +58,6 @@ else hamster sync --watch > /dev/null 2>&1 & echo "PREREQ_OK account=${account} 
 ```
 
 - `PREREQ_FAIL` → show errors and stop (for uncommitted changes only: ask whether to proceed or stash)
-- `ACCOUNT_UNRESOLVED` → stop and tell the user to set `HAMSTER_ACCOUNT_ID`; never guess an account directory
 - `sync_pid=existing` → a watcher whose working directory is this repo is already running (an interrupted session, or the user's own). Reuse it; do NOT kill it at completion
 - `sync_pid=unknown` → a watcher exists but its working directory could not be read, so it may belong to another repo. Advisory only: reuse it rather than starting a second one, and never kill it
 - Numeric `sync_pid` → remember the literal number. Each Bash call is a fresh shell, so `$sync_pid` does not survive to later calls — at Completion, substitute it literally (e.g. `kill 12345`)
@@ -72,7 +66,7 @@ else hamster sync --watch > /dev/null 2>&1 & echo "PREREQ_OK account=${account} 
 
 ## Brief Selection and Scheduling
 
-Read [brief-selection](references/brief-selection.md) and follow it: argument parsing, the brief picker, the inline frontmatter parse, and wave grouping, ending with the single execute/modify/cancel confirmation.
+Follow **Brief Selection** and **Scheduling** in [brief-selection](references/brief-selection.md): argument parsing, the brief picker, the inline frontmatter parse, and wave grouping, ending with the single execute/modify/cancel confirmation.
 
 ---
 
@@ -104,7 +98,7 @@ Read [execution-loop](references/execution-loop.md) and follow it for every wave
 | Error | Recovery |
 |-------|----------|
 | Prereq failure | Stop with instructions (uncommitted changes: ask stash/proceed) |
-| Account unresolved | Stop; ask the user to set `HAMSTER_ACCOUNT_ID` |
+| Account unresolved | Stop; follow Account Resolution's team-selection/re-sync guidance |
 | Brief not found | Show partial matches, ask user |
 | Auth expired | `hamster auth login`; continue without status updates if it fails |
 | Merge conflict (base or between executors) | Stop, report, never auto-resolve |
