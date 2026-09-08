@@ -17,56 +17,33 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = process.cwd();
 
+// Descriptions stay single-line: cursor.directory and validate-plugin.mjs read
+// frontmatter line by line, so a `|` block scalar is listed as a literal pipe.
 const AGENTS = [
   {
     id: "task-executor",
     model: "opus",
     color: "blue",
-    description: `Implements all subtasks of a single parent Hamster Studio task (HAM-XXX). Reads the parent and all its subtask files from .hamster/, loads project context (project skills, blueprints, methods), discovers relevant codebase context just-in-time, implements all subtasks sequentially in one session, updates task statuses, and reports all changes. Execution-only with leeway: tasks are pre-generated upstream and trusted by default, but stale references are adapted (and documented), and genuine plan defects are escalated as PLAN_ISSUE rather than blindly implemented. Does NOT run project validation — that is handled by the orchestrator after all parallel executors complete.
-
-Examples:
-<example>
-Context: The orchestrator needs a parent task and its subtasks implemented.
-assistant: "I'll launch the task-executor to implement HAM-100 and its subtasks HAM-101, HAM-102, HAM-103."
-<commentary>
-Use task-executor for each parent task in the execution loop. One agent session handles all subtasks.
-</commentary>
-</example>`,
+    description:
+      "Implements all subtasks of a single parent Hamster Studio task (HAM-XXX). Reads the parent and all its subtask files from .hamster/, loads project context (project skills, blueprints, methods), discovers relevant codebase context just-in-time, implements all subtasks sequentially in one session, updates task statuses, and reports all changes. Execution-only with leeway: tasks are pre-generated upstream and trusted by default, but stale references are adapted (and documented), and genuine plan defects are escalated as PLAN_ISSUE rather than blindly implemented. Does NOT run project validation — that is handled by the orchestrator after all parallel executors complete.",
   },
   {
     id: "wave-reviewer",
     model: "sonnet",
     color: "green",
-    description: `Reviews and simplifies the cumulative code changes of one execution wave (one or more parent tasks). Phase 1 reviews the full wave diff for convention compliance, quality, security, and completeness — producing a per-parent PASS or NEEDS_FIXES verdict. Because it sees the whole wave, it also catches cross-parent integration issues that per-task review would miss. For parents that pass, Phase 2 applies surgical simplification while preserving all functionality. Runs once per wave, after all parallel task-executors complete and validation/tests pass.
-
-Examples:
-<example>
-Context: Wave 2 (HAM-100 and HAM-300) finished executing and validation passed.
-assistant: "Launching wave-reviewer to review the cumulative wave diff and simplify what passes."
-<commentary>
-One wave-reviewer per wave reviews all parents together, replacing N per-parent review agents.
-</commentary>
-</example>`,
+    description:
+      "Reviews and simplifies the cumulative code changes of one execution wave (one or more parent tasks). Phase 1 reviews the full wave diff for convention compliance, quality, security, and completeness — producing a per-parent PASS or NEEDS_FIXES verdict. Because it sees the whole wave, it also catches cross-parent integration issues that per-task review would miss. For parents that pass, Phase 2 applies surgical simplification while preserving all functionality. Runs once per wave, after all parallel task-executors complete and validation/tests pass.",
   },
 ];
-
-function indentBlock(text, spaces) {
-  const pad = " ".repeat(spaces);
-  return text
-    .replace(/\r\n/g, "\n")
-    .replace(/\s+$/g, "")
-    .split("\n")
-    .map((line) => (line.length === 0 ? pad.trimEnd() : `${pad}${line}`))
-    .join("\n");
-}
 
 function renderAgent({ id, model, color, description }, body) {
   const normalizedBody = body.replace(/\r\n/g, "\n").replace(/\s+$/g, "") + "\n";
   return [
     "---",
     `name: ${id}`,
-    "description: |",
-    indentBlock(description, 2),
+    // Double-quoted: a plain scalar cannot hold ": " or " #", and Claude Code
+    // parses this frontmatter as real YAML. JSON string syntax is valid YAML.
+    `description: ${JSON.stringify(description)}`,
     `model: ${model}`,
     `color: ${color}`,
     "---",
@@ -93,6 +70,11 @@ export async function syncAdapters({ check = false } = {}) {
       `${agent.id}.md`
     );
     const targetPath = path.join(repoRoot, "agents", `${agent.id}.md`);
+
+    if (/[\r\n]/.test(agent.description)) {
+      errors.push(`Agent ${agent.id}: description must be single-line; a newline breaks the generated frontmatter.`);
+      continue;
+    }
 
     let body;
     try {
