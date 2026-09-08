@@ -31,16 +31,10 @@ If it prints `SETUP_NEEDED` in Codex on macOS and `hamster` is already on `PATH`
 
 ## Detect the Brief
 
-One bash call — account, live sync, and all three detection signals:
+Read [brief-selection](references/brief-selection.md) and run **Account Resolution** first. On `ACCOUNT_UNRESOLVED`, follow its team-selection/re-sync guidance and stop. Then use the resolved filesystem slug (shell-quoted) in one bash call for live sync and all three detection signals:
 
 ```bash
-[ -d ".hamster" ] || { echo ".hamster/ not found. Run the setup skill, then hamster sync."; exit 1; }
-account="${HAMSTER_ACCOUNT_ID:-}"
-if [ -z "$account" ]; then
-  account=$(for d in .hamster/*/; do [ -d "${d}briefs" ] && basename "$d"; done)
-  n=$(printf '%s\n' "$account" | grep -c .)
-  [ "$n" -eq 1 ] || { echo "ACCOUNT_UNRESOLVED: ${n} directories under .hamster/ contain briefs/; set HAMSTER_ACCOUNT_ID"; exit 1; }
-fi
+account="<resolved filesystem account slug>"
 repo=$(git rev-parse --show-toplevel 2>/dev/null)
 watch=""
 for pid in $(pgrep -f "hamster sync .*--watch" 2>/dev/null); do
@@ -55,6 +49,7 @@ else hamster sync --watch > /dev/null 2>&1 & echo "account=${account} sync_pid=$
 # numeric → remember the literal number (fresh shell per Bash call)
 # Signal A: current branch
 git branch --show-current
+[ -d ".hamster/${account}/briefs" ] || { echo "ACCOUNT_UNRESOLVED: .hamster/${account}/briefs does not exist; re-run Account Resolution and use the literal slug it prints"; exit 1; }
 # Signal B: briefs with in_progress tasks
 for tasks_dir in .hamster/${account}/briefs/*/tasks; do
   [ -d "$tasks_dir" ] || continue

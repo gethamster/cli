@@ -173,6 +173,15 @@ async function validateFrontmatterFile(filePath, componentName, requiredKeys, pl
   for (const key of requiredKeys) {
     if (!parsed[key] || parsed[key].length === 0) {
       addError(`${pluginName}: ${componentName} file missing "${key}" in frontmatter: ${relativeFile}`);
+      continue;
+    }
+    // Marketplace scanners (cursor.directory, this script) read frontmatter line by
+    // line, so a `|` or `>` block scalar ships its header as the value. YAML plain
+    // scalars cannot start with either indicator, so the first character decides.
+    if (/^[|>]/.test(parsed[key])) {
+      addError(
+        `${pluginName}: ${componentName} frontmatter "${key}" must be a single-line value, not a YAML block scalar: ${relativeFile}`
+      );
     }
   }
 
@@ -222,6 +231,17 @@ async function validateSkills(pluginDir, pluginName) {
         `${pluginName}: skill frontmatter name "${parsed.name}" does not match its directory "${directory}" (${path.relative(repoRoot, file)}).`
       );
     }
+  }
+}
+
+async function validateAgents(pluginDir, pluginName) {
+  const agentsDir = path.join(pluginDir, "agents");
+  if (!(await pathExists(agentsDir))) {
+    return;
+  }
+  const files = (await walkFiles(agentsDir)).filter((file) => file.endsWith(".md"));
+  for (const file of files) {
+    await validateFrontmatterFile(file, "agent", ["name", "description"], pluginName);
   }
 }
 
@@ -275,14 +295,40 @@ function validateMarketplaceEntry(context, entry, version) {
   requireVersionParity(`${context} plugins[0]`, entry.version, version);
 }
 
+// cursor/plugins/schemas/marketplace.schema.json is closed at the root (name,
+// owner, metadata, plugins) and per plugin entry (name, source, description,
+// minClientVersions); only metadata is open. Everything else lives in
+// .cursor-plugin/plugin.json, which Cursor merges over the entry.
+const cursorMarketplaceFields = new Set(["name", "owner", "metadata", "plugins"]);
+const cursorMarketplaceEntryFields = new Set(["name", "source", "description", "minClientVersions"]);
+
 async function validateCursor(version) {
   const marketplacePath = path.join(repoRoot, ".cursor-plugin", "marketplace.json");
   const marketplace = await readJsonFile(marketplacePath, "Cursor marketplace manifest");
   if (marketplace) {
+    for (const key of Object.keys(marketplace)) {
+      if (!cursorMarketplaceFields.has(key)) {
+        addError(`Cursor marketplace.json has field "${key}" rejected by Cursor's marketplace schema.`);
+      }
+    }
     const entry = Array.isArray(marketplace.plugins) ? marketplace.plugins[0] : null;
-    validateMarketplaceEntry("Cursor marketplace.json", entry, version);
-    // Cursor's catalog carries version in metadata and on the plugin entry.
-    // plugins[0] is checked above; metadata must not drift independently.
+    if (!entry || entry.name !== "hamster") {
+      addError('Cursor marketplace.json plugins[0].name must be "hamster".');
+    } else {
+      if (!isRepoRootSource(entry.source)) {
+        addError(
+          `Cursor marketplace.json plugins[0].source must resolve to "./", got ${JSON.stringify(entry.source)}.`
+        );
+      }
+      if (typeof entry.description !== "string" || entry.description.length === 0) {
+        addError("Cursor marketplace.json plugins[0].description is required.");
+      }
+      for (const key of Object.keys(entry)) {
+        if (!cursorMarketplaceEntryFields.has(key)) {
+          addError(`Cursor marketplace.json plugins[0] has field "${key}" rejected by Cursor's marketplace schema.`);
+        }
+      }
+    }
     requireVersionParity("Cursor marketplace.json metadata", marketplace.metadata?.version, version);
   }
 
@@ -862,6 +908,7 @@ async function validateLayout() {
   }
 
   await validateSkills(repoRoot, "hamster");
+  await validateAgents(repoRoot, "hamster");
 }
 
 function summarizeAndExit() {

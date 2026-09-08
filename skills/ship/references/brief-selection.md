@@ -1,8 +1,43 @@
-# Brief Selection and Scheduling
+# Account Resolution, Brief Selection, and Scheduling
 
-Duplicated byte-for-byte into the plan skill (which runs both sections) and the resume skill (Scheduling only), because every skill directory is self-contained; `scripts/validate-plugin.mjs` fails the build when the copies diverge. Edit all three together and keep the section names and behavior stable.
+Canonical source: `skills/ship/references/brief-selection.md`. It is copied byte-for-byte into plan-hamster and resume-hamster because every skill directory is self-contained; `scripts/validate-plugin.mjs` rejects divergent copies. Edit the canonical file and copy it to both consumers. All three skills run Account Resolution before their own setup; plan runs Brief Selection and Scheduling, while resume re-enters Scheduling.
 
-Both sections assume `$account` from the calling skill's account discovery step.
+## Account Resolution
+
+`HAMSTER_ACCOUNT_ID` is an API account UUID, **not** a directory name. Resolve the filesystem `$account` from the repository projection's `.hamster/.state.json` `account_slug`, checking its `account_id` against the environment when set. Do not change or unset `HAMSTER_ACCOUNT_ID` to make a filesystem lookup work.
+
+Run this from the user's repository after readiness succeeds. It reads `.hamster/.state.json` with `python3` instead of matching JSON as text, and stops with `ACCOUNT_UNRESOLVED` when `python3` is missing.
+
+```bash
+command -v python3 >/dev/null 2>&1 || { echo "ACCOUNT_UNRESOLVED: python3 is required to read .hamster/.state.json; install python3 and retry"; exit 1; }
+account=$(python3 - <<'PY'
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+root = Path(".hamster")
+try:
+    state = json.loads((root / ".state.json").read_text())
+    account = state["account_slug"]
+    state_id = state["account_id"]
+except Exception as error:
+    sys.exit("ACCOUNT_UNRESOLVED: cannot read .hamster/.state.json (" + str(error) + "); run hamster sync in this repository")
+env_id = os.environ.get("HAMSTER_ACCOUNT_ID", "")
+if env_id not in ("", state_id):
+    sys.exit("ACCOUNT_UNRESOLVED: HAMSTER_ACCOUNT_ID (" + env_id + ") is not this projection's account_id (" + str(state_id) + "); set that UUID, never a slug, or switch teams with the CLI and re-sync")
+if not re.fullmatch(r"[A-Za-z0-9_-]+", account) or not (root / account / "briefs").is_dir():
+    sys.exit("ACCOUNT_UNRESOLVED: .hamster/.state.json names no synced account directory; run hamster sync in this repository")
+print(account)
+PY
+) || exit 1
+printf 'ACCOUNT_RESOLVED: %s\n' "$account"
+```
+
+`ACCOUNT_UNRESOLVED` → stop before starting a watcher, selecting a brief, or updating status. For a mismatched team, ask which team the user intends, then run `hamster team switch --account-id <uuid>` (it clears the previous team's synced data and re-syncs) followed by `hamster sync` in this repository before retrying. If an environment override is needed, it must be that team's **UUID**, never its slug. Missing or invalid state requires re-sync; never guess an account directory by scanning `.hamster/`.
+
+Remember the literal `ACCOUNT_RESOLVED` value as the filesystem `$account`. Each Bash call is a fresh shell: assign that value again, shell-quoted, before the calling skill's setup and every selection/scheduling block below. Do not re-derive it from `HAMSTER_ACCOUNT_ID`.
 
 ---
 
@@ -43,6 +78,7 @@ List actionable briefs and ask the user to pick:
 
 ```bash
 briefs_dir=".hamster/${account}/briefs"
+[ -d "$briefs_dir" ] || { echo "ACCOUNT_UNRESOLVED: $briefs_dir does not exist; re-run Account Resolution and use the literal slug it prints"; exit 1; }
 for brief_dir in "${briefs_dir}"/*/; do
   [ -d "$brief_dir" ] || continue
   slug=$(basename "$brief_dir"); brief_file="${brief_dir}brief.md"; tasks_dir="${brief_dir}tasks"

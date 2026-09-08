@@ -17,5 +17,12 @@
     "ai-workflow",
     "workflow-automation"
   ],
+  "category": "workflow",
+  "tags": [
+    "planning",
+    "parallel-execution",
+    "code-review",
+    "git"
+  ],
   "logo": "assets/logo.svg"
 }

@@ -31,20 +31,9 @@ If it prints `SETUP_NEEDED` in Codex on macOS and `hamster` is already on `PATH`
 
 ## Select and Schedule
 
-```bash
-[ -d ".hamster" ] || { echo ".hamster/ not found. Run the setup skill, then hamster sync."; exit 1; }
-account="${HAMSTER_ACCOUNT_ID:-}"
-if [ -z "$account" ]; then
-  account=$(for d in .hamster/*/; do [ -d "${d}briefs" ] && basename "$d"; done)
-  n=$(printf '%s\n' "$account" | grep -c .)
-  [ "$n" -eq 1 ] || { echo "ACCOUNT_UNRESOLVED: ${n} directories under .hamster/ contain briefs/; set HAMSTER_ACCOUNT_ID"; exit 1; }
-fi
-echo "Account: $account"
-```
+Read [brief-selection](references/brief-selection.md) and run **Account Resolution** first. On `ACCOUNT_UNRESOLVED`, follow its team-selection/re-sync guidance and stop. The resolved slug is the filesystem `$account`: shell-quote it into every block you run from that reference, and never use it as `HAMSTER_ACCOUNT_ID`.
 
-`ACCOUNT_UNRESOLVED` → stop and ask the user to set `HAMSTER_ACCOUNT_ID`; sibling directories like `.hamster/plans/` are not accounts.
-
-Then read [brief-selection](references/brief-selection.md) and follow both its sections exactly as written (argument parsing, brief picker, inline frontmatter parse, wave grouping) — but stop after producing the schedule; do not confirm execution.
+Then follow **Brief Selection** and **Scheduling** in [brief-selection](references/brief-selection.md) exactly as written (argument parsing, brief picker, inline frontmatter parse, wave grouping) — but stop after producing the schedule; do not confirm execution.
 
 Additionally read the brief body (`brief.md`) and skim the parent task bodies to inform the analysis below.
 
@@ -123,5 +112,6 @@ Ask the user: "Ship this brief?" — "Yes, ship now" → run `/hamster:ship {slu
 | Error | Recovery |
 |-------|----------|
 | `.hamster/` missing | Stop — follow the setup skill, then retry |
+| Account unresolved | Stop; follow Account Resolution's team-selection/re-sync guidance |
 | Brief not found | Show partial matches, suggest closest |
 | Malformed argument | Show usage examples, ask user to re-enter |
