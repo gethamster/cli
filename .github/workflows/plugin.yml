@@ -21,6 +21,12 @@ jobs:
         run: node scripts/sync-adapters.mjs --check
       - name: Validate plugin package
         run: node scripts/validate-plugin.mjs
+      - name: Build Codex skills-only bundle
+        run: node scripts/build-codex-bundle.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codex-skills-only-bundle
+          path: dist/*.zip
 
   # Bumping "version" in the root plugin.json on main publishes plugin-v<version>,
   # so an install can pin an exact plugin version. Published tags are never

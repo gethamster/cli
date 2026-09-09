@@ -10,6 +10,7 @@ import { after, test } from "node:test";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(repoRoot, "scripts", "validate-plugin.mjs");
+const bundleBuilderPath = path.join(repoRoot, "scripts", "build-codex-bundle.mjs");
 const readyScript = path.join(repoRoot, "skills", "setup", "scripts", "ensure-ready.sh");
 
 const PACKAGE_ENTRIES = [
@@ -76,6 +77,19 @@ async function patchCodexInterface(cwd, patch) {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   patch(manifest.interface);
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+async function buildCodexBundle(cwd, args = []) {
+  const outDir = path.join(cwd, "dist");
+  const result = await run(process.execPath, [bundleBuilderPath, "--out", outDir, ...args], { cwd });
+  const version = JSON.parse(await readFile(path.join(cwd, "plugin.json"), "utf8")).version;
+  return { result, zipPath: path.join(outDir, `hamster-codex-skills-only-${version}.zip`) };
+}
+
+async function zipEntries(zipPath) {
+  const listing = await run("unzip", ["-Z1", zipPath]);
+  assert.equal(listing.code, 0, listing.stderr);
+  return listing.stdout.split("\n").filter(Boolean);
 }
 
 test("ENOENT on plugin.json is reported as missing", async () => {
@@ -245,6 +259,41 @@ test("a drifted duplicate fails validation", async () => {
   const result = await runValidator(cwd);
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /Duplicated copies have diverged and must stay byte-identical/);
+});
+
+test("the Codex bundle carries only skills, assets, and an MCP-free manifest", async () => {
+  const cwd = await makeTemp("hamster-plugin-bundle-");
+  await copyPackage(cwd);
+
+  const { result, zipPath } = await buildCodexBundle(cwd);
+  assert.equal(result.code, 0, result.stderr);
+
+  const entries = await zipEntries(zipPath);
+  for (const expected of [".codex-plugin/plugin.json", "skills/ship/SKILL.md", "assets/logo.png", "LICENSE"]) {
+    assert.ok(entries.includes(expected), `expected ${expected} in ${entries.join(", ")}`);
+  }
+  for (const forbidden of ["plugin.json", "mcp.json", ".mcp.json", "agents/task-executor.md"]) {
+    assert.ok(!entries.includes(forbidden), `did not expect ${forbidden} in the bundle`);
+  }
+
+  const manifestDump = await run("unzip", ["-p", zipPath, ".codex-plugin/plugin.json"]);
+  assert.equal(manifestDump.code, 0, manifestDump.stderr);
+  const manifest = JSON.parse(manifestDump.stdout);
+  assert.equal(Object.hasOwn(manifest, "mcpServers"), false);
+  assert.equal(manifest.interface.displayName, "Hamster");
+});
+
+test("excluding a skill drops it and keeps the rest", async () => {
+  const cwd = await makeTemp("hamster-plugin-bundle-exclude-");
+  await copyPackage(cwd);
+
+  const { result, zipPath } = await buildCodexBundle(cwd, ["--exclude", "setup"]);
+  assert.equal(result.code, 0, result.stderr);
+
+  const entries = await zipEntries(zipPath);
+  assert.ok(!entries.includes("skills/setup/SKILL.md"));
+  const skillFiles = entries.filter((entry) => /^skills\/[^/]+\/SKILL\.md$/.test(entry));
+  assert.equal(skillFiles.length, 7);
 });
 
 test("failed hamster status prints to stderr and stdout stays SETUP_NEEDED", async () => {
