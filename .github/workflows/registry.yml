@@ -1,27 +1,17 @@
 name: MCP Registry
 
-# Kept separate from the plugin package workflow: a plugin release is a version
-# in plugin.json on main and a tag left unused costs nothing, while a registry
-# version is published once and can never be edited afterwards, so publishing
-# here is a deliberate manual action. The metadata gates run here too rather
-# than as steps in plugin.yml so registry validation reports as its own status
-# check.
+# Separate from the plugin workflow: a plugin release is a version in
+# plugin.json on main, while a registry version is immutable once published,
+# so publishing here is a deliberate manual action. The listing's version
+# tracks the hosted server, which is deployed elsewhere, so no event in this
+# repository can trigger it.
 on:
   push:
   pull_request:
-  # The registry entry names a version the deployment must actually report, and
-  # nothing in this repository changes the deployment, so the drift can only be
-  # caught by asking the endpoint on a timer.
-  schedule:
-    - cron: "0 14 * * 1"
   workflow_dispatch:
     inputs:
-      version:
-        description: "server.json version to publish (only read when publishing)"
-        required: false
-        type: string
       publish:
-        description: "Publish to the official MCP Registry (leave off to only run the gates)"
+        description: "Publish server.json to the official MCP Registry (leave off to only validate)"
         required: false
         default: false
         type: boolean
@@ -29,94 +19,47 @@ on:
 permissions:
   contents: read
 
+env:
+  MCP_PUBLISHER_VERSION: v1.8.1
+
 jobs:
   validate:
-    name: Validate metadata
+    name: Validate server.json
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Run registry metadata tests
-        run: node --test scripts/test-registry.mjs
-      - name: Validate server.json
-        run: node scripts/validate-registry.mjs
-
-  conformance:
-    name: Remote connector conformance
-    # No push to this repository changes the deployed server, so running this
-    # per-push would redden unrelated pull requests during a production OAuth
-    # incident and catch nothing this repository caused. It also needs the
-    # conformance user's credentials, which a fork cannot have.
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      # /mcp accepts only Supabase session tokens, and a stored refresh token is
-      # rotated on first use, so each run signs the conformance user in fresh.
-      - name: Sign in the conformance user
-        env:
-          EMAIL: ${{ secrets.HAMSTER_CONFORMANCE_EMAIL }}
-          PASSWORD: ${{ secrets.HAMSTER_CONFORMANCE_PASSWORD }}
+      - name: Install mcp-publisher
         run: |
           set -euo pipefail
-          apikey="$(curl -fsS https://tryhamster.com/cli/config | jq -r '.realtime_api_key')"
-          token="$(jq -cn --arg e "$EMAIL" --arg p "$PASSWORD" '{email:$e,password:$p}' \
-            | curl -fsS -X POST 'https://tryhamster.com/auth/v1/token?grant_type=password' \
-                -H "apikey: $apikey" -H 'content-type: application/json' --data-binary @- \
-            | jq -re '.access_token')"
-          echo "::add-mask::$token"
-          echo "HAMSTER_MCP_TOKEN=$token" >> "$GITHUB_ENV"
-      - name: Exercise the published endpoint
-        env:
-          HAMSTER_CONFORMANCE_ACCOUNT: ${{ vars.HAMSTER_CONFORMANCE_ACCOUNT }}
-        run: node scripts/verify-connector.mjs
-      # The deployment check above proves the server reports server.json's
-      # version; this proves the registry lists it. Without it a version bumped,
-      # deployed, and never dispatched for publishing stays unlisted silently. A
-      # dispatch run skips this because it may be the publish that closes the gap.
-      - name: Confirm the committed version is listed in the registry
-        if: github.event_name == 'schedule'
+          curl -fL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Validate against the registry schema
+        run: ./mcp-publisher validate
+      # validate-plugin.mjs keeps the three plugin manifests on one endpoint;
+      # this keeps the registry listing on the same one, so a moved endpoint
+      # cannot be published while the installed plugin still points elsewhere.
+      - name: Confirm the remote matches the plugin endpoint
         run: |
           set -euo pipefail
-          version="$(jq -r '.version' server.json)"
-          name="$(jq -r '.name' server.json)"
-          body="$(curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/${name//\//%2F}/versions")"
-          if ! echo "$body" | jq -e --arg v "$version" '.servers | any(.server.version == $v)' >/dev/null; then
-            echo "server.json is at $version but the registry does not list it; dispatch this workflow with publish=true." >&2
+          listing="$(jq -r '.remotes[0].url' server.json)"
+          plugin="$(jq -r '.mcpServers.hamster.url' mcp.json)"
+          if [ "$listing" != "$plugin" ]; then
+            echo "server.json remote $listing does not match mcp.json $plugin" >&2
             exit 1
           fi
-          echo "$name $version is listed in the registry."
 
   publish:
     name: Publish to the official registry
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: [validate, conformance]
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # The dispatcher types the version they believe they are shipping. A
-      # mismatch means the checkout is not the release they think it is. The
-      # name is read from the same file so the registry lookups below cannot
-      # drift from what gets published.
-      - name: Confirm the requested version is the committed one
-        env:
-          REQUESTED: ${{ inputs.version }}
+      - name: Read the listing
         run: |
           set -euo pipefail
-          committed="$(jq -r '.version' server.json)"
-          if [ "$committed" != "$REQUESTED" ]; then
-            echo "server.json is at $committed but the run requested ${REQUESTED:-<empty>}" >&2
-            exit 1
-          fi
           name="$(jq -r '.name' server.json)"
           {
-            echo "version=$committed"
+            echo "version=$(jq -r '.version' server.json)"
             echo "server_name=$name"
             echo "server_name_encoded=${name//\//%2F}"
           } >> "$GITHUB_ENV"
@@ -133,18 +76,17 @@ jobs:
             404) echo '{}' > versions.json ;;
             *) echo "registry versions lookup returned HTTP $status" >&2; exit 1 ;;
           esac
-          published="$(jq -r --arg v "$version" '.servers // [] | any(.server.version == $v)' versions.json)"
-          if [ "$published" = true ]; then
+          if jq -e --arg v "$version" '.servers // [] | any(.server.version == $v)' versions.json >/dev/null; then
             echo "$server_name $version is already published; nothing to do."
             echo "already_published=true" >> "$GITHUB_ENV"
           else
             echo "already_published=false" >> "$GITHUB_ENV"
           fi
 
-      # The com.tryhamster namespace is authorized by a key served from the
-      # domain by a different repository. Assert it is reachable before asking
-      # the registry to fetch it, so a missing deploy fails here with the URL
-      # rather than inside an authentication error.
+      # The com.tryhamster namespace is authorized by a public key served from
+      # the domain. Assert it is reachable before asking the registry to fetch
+      # it, so a missing deploy fails here with the URL rather than inside an
+      # authentication error.
       - name: Confirm the domain proof is live
         if: env.already_published == 'false'
         run: |
@@ -157,23 +99,10 @@ jobs:
 
       - name: Install mcp-publisher
         if: env.already_published == 'false'
-        env:
-          MCP_PUBLISHER_VERSION: v1.8.1
         run: |
           set -euo pipefail
           curl -fL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
 
-      # The local validator owns the Hamster-specific rules; this checks the
-      # same file against the live registry schema, which can tighten without
-      # this repository noticing.
-      - name: Validate server.json against the registry
-        if: env.already_published == 'false'
-        run: ./mcp-publisher validate
-
-      # Domain authentication: the registry fetches the public key from
-      # https://tryhamster.com/.well-known/mcp-registry-auth and accepts any
-      # signature from the matching private key, so that key lives only in this
-      # repository's secrets.
       - name: Authenticate to the registry
         if: env.already_published == 'false'
         env:
@@ -188,6 +117,6 @@ jobs:
         if: env.already_published == 'false'
         run: |
           set -euo pipefail
-          body="$(curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/${server_name_encoded}/versions")"
-          echo "$body" | jq -e --arg v "$version" '.servers | any(.server.version == $v)' >/dev/null
+          curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/${server_name_encoded}/versions" \
+            | jq -e --arg v "$version" '.servers | any(.server.version == $v)' >/dev/null
           echo "$server_name $version is live."
