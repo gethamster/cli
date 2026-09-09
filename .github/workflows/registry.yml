@@ -8,7 +8,7 @@ name: MCP Registry
 on:
   push:
   pull_request:
-  # Rerun a publish by hand, for example after the domain proof went live.
+  # Rerun a publish by hand.
   workflow_dispatch:
 
 permissions:
@@ -47,6 +47,11 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The io.github.gethamster namespace is granted to this repository's own
+      # OIDC token, so publishing needs no stored credential.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Read the listing
@@ -78,20 +83,6 @@ jobs:
             echo "already_published=false" >> "$GITHUB_ENV"
           fi
 
-      # The com.tryhamster namespace is authorized by a public key served from
-      # the domain. Assert it is reachable before asking the registry to fetch
-      # it, so a missing deploy fails here with the URL rather than inside an
-      # authentication error.
-      - name: Confirm the domain proof is live
-        if: env.already_published == 'false'
-        run: |
-          set -euo pipefail
-          proof="$(curl -fsS https://tryhamster.com/.well-known/mcp-registry-auth)"
-          case "$proof" in
-            "v=MCPv1; k=ed25519; p="*) echo "domain proof is live" ;;
-            *) echo "unexpected proof document: $proof" >&2; exit 1 ;;
-          esac
-
       - name: Install mcp-publisher
         if: env.already_published == 'false'
         run: |
@@ -100,9 +91,7 @@ jobs:
 
       - name: Authenticate to the registry
         if: env.already_published == 'false'
-        env:
-          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
-        run: ./mcp-publisher login http --domain tryhamster.com --private-key "$MCP_REGISTRY_PRIVATE_KEY"
+        run: ./mcp-publisher login github-oidc
 
       - name: Publish server.json
         if: env.already_published == 'false'

@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "com.tryhamster/hamster",
+  "name": "io.github.gethamster/hamster",
   "title": "Hamster",
   "description": "Search and manage Hamster briefs, tasks, plans, and knowledge; trigger delivery from your agent.",
   "version": "1.0.0",
