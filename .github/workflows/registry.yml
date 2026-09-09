@@ -1,0 +1,106 @@
+name: MCP Registry
+
+# Separate from the plugin workflow because it publishes a different artifact
+# on a different version: server.json tracks the hosted server, not
+# plugin.json. Like the plugin tag, a version landing on main publishes it and
+# an already published version is a no-op. Registry versions are immutable, so
+# merge a bump only once the hosted server reports that version.
+on:
+  push:
+  pull_request:
+  # Rerun a publish by hand.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MCP_PUBLISHER_VERSION: v1.8.1
+
+jobs:
+  validate:
+    name: Validate server.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: |
+          set -euo pipefail
+          curl -fL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Validate against the registry schema
+        run: ./mcp-publisher validate
+      # validate-plugin.mjs keeps the three plugin manifests on one endpoint;
+      # this keeps the registry listing on the same one, so a moved endpoint
+      # cannot be published while the installed plugin still points elsewhere.
+      - name: Confirm the remote matches the plugin endpoint
+        run: |
+          set -euo pipefail
+          listing="$(jq -r '.remotes[0].url' server.json)"
+          plugin="$(jq -r '.mcpServers.hamster.url' mcp.json)"
+          if [ "$listing" != "$plugin" ]; then
+            echo "server.json remote $listing does not match mcp.json $plugin" >&2
+            exit 1
+          fi
+
+  publish:
+    name: Publish to the official registry
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The io.github.gethamster namespace is granted to this repository's own
+      # OIDC token, so publishing needs no stored credential.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the listing
+        run: |
+          set -euo pipefail
+          name="$(jq -r '.name' server.json)"
+          {
+            echo "version=$(jq -r '.version' server.json)"
+            echo "server_name=$name"
+            echo "server_name_encoded=${name//\//%2F}"
+          } >> "$GITHUB_ENV"
+
+      # Published versions are immutable, so a re-run of an already published
+      # version is reported and skipped rather than failed. A 404 is the
+      # unpublished-server case; any other failure must not look like one.
+      - name: Skip if this version is already published
+        run: |
+          set -euo pipefail
+          status="$(curl -sS -o versions.json -w '%{http_code}' "https://registry.modelcontextprotocol.io/v0.1/servers/${server_name_encoded}/versions")"
+          case "$status" in
+            200) ;;
+            404) echo '{}' > versions.json ;;
+            *) echo "registry versions lookup returned HTTP $status" >&2; exit 1 ;;
+          esac
+          if jq -e --arg v "$version" '.servers // [] | any(.server.version == $v)' versions.json >/dev/null; then
+            echo "$server_name $version is already published; nothing to do."
+            echo "already_published=true" >> "$GITHUB_ENV"
+          else
+            echo "already_published=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install mcp-publisher
+        if: env.already_published == 'false'
+        run: |
+          set -euo pipefail
+          curl -fL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to the registry
+        if: env.already_published == 'false'
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json
+        if: env.already_published == 'false'
+        run: ./mcp-publisher publish
+
+      - name: Confirm the version is live
+        if: env.already_published == 'false'
+        run: |
+          set -euo pipefail
+          curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/${server_name_encoded}/versions" \
+            | jq -e --arg v "$version" '.servers | any(.server.version == $v)' >/dev/null
+          echo "$server_name $version is live."

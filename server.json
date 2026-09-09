@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.gethamster/hamster",
+  "title": "Hamster",
+  "description": "Search and manage Hamster briefs, tasks, plans, and knowledge; trigger delivery from your agent.",
+  "version": "0.1.0",
+  "websiteUrl": "https://tryhamster.com/docs/hamster-studio/mcp",
+  "repository": {
+    "url": "https://github.com/gethamster/cli",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://tryhamster.com/mcp"
+    }
+  ]
+}
