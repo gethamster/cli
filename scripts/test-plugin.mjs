@@ -78,11 +78,6 @@ async function patchCodexInterface(cwd, patch) {
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
-// A real 64x32 PNG rather than the shipped logo with its header rewritten: a
-// fixture that no decoder would open cannot prove a dimension rule.
-const WIDE_PNG_BASE64 =
-  "iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAIAAAAt/+nTAAAABmJLR0QA/wD/AP+gvaeTAAAAQUlEQVRYhe3PQQ0AIBDAMEDD+deKCB4Nyapg2zOzfnZ0wKsGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQGtAa0BrQLw6AAfD+rUTkAAAAASUVORK5CYII=";
-
 test("ENOENT on plugin.json is reported as missing", async () => {
   const cwd = await makeTemp("hamster-plugin-missing-");
   await copyPackage(cwd);
@@ -168,26 +163,6 @@ test("a fourth Codex starter prompt fails validation", async () => {
   assert.match(result.stderr, /interface\.defaultPrompt has 4 entries; the directory allows at most 3/);
 });
 
-test("a non-square Codex logo fails validation", async () => {
-  const cwd = await makeTemp("hamster-plugin-codex-square-");
-  await copyPackage(cwd);
-  await writeFile(path.join(cwd, "assets", "logo.png"), Buffer.from(WIDE_PNG_BASE64, "base64"));
-
-  const result = await runValidator(cwd);
-  assert.notEqual(result.code, 0);
-  assert.match(result.stderr, /interface\.logo is 64x32; the directory requires a square image/);
-});
-
-test("a Codex icon whose bytes are not an image fails validation", async () => {
-  const cwd = await makeTemp("hamster-plugin-codex-bytes-");
-  await copyPackage(cwd);
-  await writeFile(path.join(cwd, "assets", "icon.png"), "not really a png\n");
-
-  const result = await runValidator(cwd);
-  assert.notEqual(result.code, 0);
-  assert.match(result.stderr, /interface\.composerIcon is named "\.png" but its bytes are a different format/);
-});
-
 test("a non-https Codex privacyPolicyURL fails validation", async () => {
   const cwd = await makeTemp("hamster-plugin-codex-privacy-");
   await copyPackage(cwd);
@@ -210,18 +185,6 @@ test("a dropped Codex support link fails validation", async () => {
   const result = await runValidator(cwd);
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /interface\.supportURL must be a non-empty string/);
-});
-
-test("a low-contrast Codex dark brand color fails validation", async () => {
-  const cwd = await makeTemp("hamster-plugin-codex-contrast-");
-  await copyPackage(cwd);
-  await patchCodexInterface(cwd, (iface) => {
-    iface.brandColorDark = iface.brandColor;
-  });
-
-  const result = await runValidator(cwd);
-  assert.notEqual(result.code, 0);
-  assert.match(result.stderr, /interface\.brandColorDark #[0-9A-Fa-f]{6} has [\d.]+:1 contrast against #212121/);
 });
 
 test("a Codex image path without a ./ prefix fails validation", async () => {
@@ -259,22 +222,6 @@ test("a Codex catalog category that drifts from the manifest fails validation", 
   const result = await runValidator(cwd);
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /category "Productivity" does not match \.codex-plugin\/plugin\.json interface\.category "Developer Tools"/);
-});
-
-test("a non-square Codex SVG logo fails validation", async () => {
-  const cwd = await makeTemp("hamster-plugin-codex-svg-");
-  await copyPackage(cwd);
-  await writeFile(
-    path.join(cwd, "assets", "wide.svg"),
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 128"></svg>\n'
-  );
-  await patchCodexInterface(cwd, (iface) => {
-    iface.logo = "./assets/wide.svg";
-  });
-
-  const result = await runValidator(cwd);
-  assert.notEqual(result.code, 0);
-  assert.match(result.stderr, /interface\.logo viewBox is 256x128; the directory requires a square image/);
 });
 
 test("an empty Codex logoDark fails validation", async () => {

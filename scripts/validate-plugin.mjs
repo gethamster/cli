@@ -139,27 +139,25 @@ function isSafeRelativePath(value) {
 
 async function validateReferencedPath(pluginDir, fieldName, pathValue, pluginName) {
   if (pathValue.startsWith("http://") || pathValue.startsWith("https://")) {
-    return null;
+    return;
   }
 
   if (!isSafeRelativePath(pathValue)) {
     addError(
       `${pluginName}: field "${fieldName}" has invalid path "${pathValue}". Use a relative path without ".." or absolute prefixes.`
     );
-    return null;
+    return;
   }
 
   const resolved = path.resolve(pluginDir, pathValue);
   try {
-    if (!(await pathExists(resolved))) {
+    const exists = await pathExists(resolved);
+    if (!exists) {
       addError(`${pluginName}: field "${fieldName}" references missing path "${pathValue}".`);
-      return null;
     }
   } catch (error) {
     addError(`${pluginName}: field "${fieldName}" could not access "${pathValue}": ${error.message}`);
-    return null;
   }
-  return resolved;
 }
 
 async function validateFrontmatterFile(filePath, componentName, requiredKeys, pluginName) {
@@ -435,8 +433,9 @@ async function validateCodexCatalog(manifestCategory) {
 // package upload (shortDescription 240 vs 30, displayName 80 vs 30,
 // developerName 120 vs 80, defaultPrompt 512 vs 128); passing the final numbers
 // passes both. Stricter than published, by choice: capabilities and
-// defaultPrompt must be non-empty arrays (an empty card is the failure this
-// gate exists to catch), and the 4096px ceiling is applied to SVGs as well.
+// defaultPrompt must be non-empty arrays, since an empty card is the failure
+// this gate exists to catch. Image contents and brand-color contrast are left
+// to the directory's upload check, which rejects them instantly and reversibly.
 // https://developers.openai.com/plugins/deploy/submission-errors
 const codexCategories = new Set([
   "Productivity",
@@ -462,14 +461,6 @@ const codexListing = {
   capabilities: { max: 20, chars: 120 },
   defaultPrompt: { max: 3, chars: 128 },
 };
-const codexBrandColorPattern = /^#[0-9a-fA-F]{6}$/;
-// The directory also accepts .jpg and .webp; this package ships PNG and SVG, and
-// an extension we cannot verify byte-for-byte would pass on its name alone.
-const codexImageExtensions = new Set([".png", ".svg"]);
-const codexPngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-const codexImageMaxBytes = 5 * 1024 * 1024;
-const codexImageMinPixels = 48;
-const codexImageMaxPixels = 4096;
 
 function codexError(field, message) {
   addError(`Codex plugin.json interface.${field} ${message}`);
@@ -520,91 +511,14 @@ function requireCodexHttpsUrl(field, value) {
   }
 }
 
-// Relative luminance and contrast per WCAG 2.x, which is what the directory's
-// brand-color contrast floors are stated against.
-function relativeLuminance(hex) {
-  const channels = [1, 3, 5].map((offset) => {
-    const value = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
-    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
-}
-
-function contrastRatio(hexA, hexB) {
-  const a = relativeLuminance(hexA);
-  const b = relativeLuminance(hexB);
-  const [light, dark] = a >= b ? [a, b] : [b, a];
-  return (light + 0.05) / (dark + 0.05);
-}
-
-function requireCodexBrandColor(field, value, against) {
-  if (typeof value !== "string" || !codexBrandColorPattern.test(value)) {
-    codexError(field, `must be a six-digit hex color, got ${JSON.stringify(value)}.`);
+async function requireCodexAsset(field, value) {
+  if (!requireCodexPath(field, value)) {
     return;
   }
-  const ratio = contrastRatio(value, against);
-  if (ratio < 2) {
-    codexError(
-      field,
-      `${value} has ${ratio.toFixed(2)}:1 contrast against ${against}; the directory requires at least 2:1.`
-    );
-  }
-}
-
-async function resolveCodexAsset(field, value) {
   if (!value.startsWith("./")) {
     codexError(field, `must start with "./", got "${value}".`);
   }
-  return validateReferencedPath(repoRoot, `interface.${field}`, value, "codex");
-}
-
-function requireCodexSquare(field, width, height, verb) {
-  if (width !== height) {
-    codexError(field, `${verb} ${width}x${height}; the directory requires a square image.`);
-  } else if (width < codexImageMinPixels || width > codexImageMaxPixels) {
-    codexError(
-      field,
-      `${verb} ${width}x${height}; the directory requires ${codexImageMinPixels}-${codexImageMaxPixels} pixels.`
-    );
-  }
-}
-
-async function validateCodexImage(field, value) {
-  const resolved = await resolveCodexAsset(field, value);
-  if (!resolved) {
-    return;
-  }
-
-  const extension = path.extname(value).toLowerCase();
-  if (!codexImageExtensions.has(extension)) {
-    codexError(field, `must end in ${[...codexImageExtensions].join(", ")}, got "${extension}".`);
-    return;
-  }
-
-  const buffer = await fs.readFile(resolved);
-  if (buffer.length > codexImageMaxBytes) {
-    codexError(field, `is ${buffer.length} bytes; the directory caps images at 5 MiB.`);
-  }
-
-  if (extension === ".svg") {
-    const svg = buffer.toString("utf8");
-    const viewBox = /viewBox="\s*[\d.]+\s+[\d.]+\s+([\d.]+)\s+([\d.]+)\s*"/.exec(svg);
-    if (!/<svg[\s>]/.test(svg)) {
-      codexError(field, "must have an <svg> root element.");
-    } else if (!viewBox) {
-      codexError(field, "must declare a numeric viewBox.");
-    } else {
-      requireCodexSquare(field, Number(viewBox[1]), Number(viewBox[2]), "viewBox is");
-    }
-    return;
-  }
-
-  if (!codexPngSignature.every((byte, index) => buffer[index] === byte)) {
-    codexError(field, `is named "${extension}" but its bytes are a different format.`);
-    return;
-  }
-
-  requireCodexSquare(field, buffer.readUInt32BE(16), buffer.readUInt32BE(20), "is");
+  await validateReferencedPath(repoRoot, `interface.${field}`, value, "codex");
 }
 
 async function validateCodexInterface(iface) {
@@ -642,18 +556,17 @@ async function validateCodexInterface(iface) {
     requireCodexHttpsUrl(field, iface[field]);
   }
 
-  requireCodexBrandColor("brandColor", iface.brandColor, "#ffffff");
-  if (iface.brandColorDark !== undefined) {
-    requireCodexBrandColor("brandColorDark", iface.brandColorDark, "#212121");
+  for (const field of ["brandColor", "brandColorDark"]) {
+    if (iface[field] !== undefined && !/^#[0-9a-fA-F]{6}$/.test(iface[field])) {
+      codexError(field, `must be a six-digit hex color, got ${JSON.stringify(iface[field])}.`);
+    }
   }
 
   for (const field of ["logo", "composerIcon"]) {
-    if (requireCodexPath(field, iface[field])) {
-      await validateCodexImage(field, iface[field]);
-    }
+    await requireCodexAsset(field, iface[field]);
   }
-  if (iface.logoDark !== undefined && requireCodexPath("logoDark", iface.logoDark)) {
-    await validateCodexImage("logoDark", iface.logoDark);
+  if (iface.logoDark !== undefined) {
+    await requireCodexAsset("logoDark", iface.logoDark);
   }
 }
 

@@ -193,8 +193,6 @@ Every skill directory is self-contained: no SKILL.md reads a sibling skill's fil
 | `skills/ship/references/agents/task-executor.md` | `resume-hamster` |
 | `skills/ship/references/agents/wave-reviewer.md` | `resume-hamster` |
 
-Listing images follow the same source-and-artifact rule. `assets/logo.svg` is the mark Cursor loads directly and the source for `assets/logo.png` (512px) and `assets/icon.png` (192px); `assets/logo-dark.svg` swaps the two fills (a `#eeeeee` tile with `#141414` glyphs, not pure white) and renders `assets/logo-dark.png`. Re-render with `rsvg-convert -w <size> -h <size> <source>.svg -o <target>.png` after any art change — the validator checks that each referenced image is square, within 48–4096 pixels, and really the format its name claims, but it cannot tell a stale raster from a fresh one.
-
 ### Execution loop
 
 For each wave of independent parent tasks (executed in parallel):
