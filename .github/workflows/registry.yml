@@ -1,20 +1,15 @@
 name: MCP Registry
 
-# Separate from the plugin workflow: a plugin release is a version in
-# plugin.json on main, while a registry version is immutable once published,
-# so publishing here is a deliberate manual action. The listing's version
-# tracks the hosted server, which is deployed elsewhere, so no event in this
-# repository can trigger it.
+# Separate from the plugin workflow because it publishes a different artifact
+# on a different version: server.json tracks the hosted server, not
+# plugin.json. Like the plugin tag, a version landing on main publishes it and
+# an already published version is a no-op. Registry versions are immutable, so
+# merge a bump only once the hosted server reports that version.
 on:
   push:
   pull_request:
+  # Rerun a publish by hand, for example after the domain proof went live.
   workflow_dispatch:
-    inputs:
-      publish:
-        description: "Publish server.json to the official MCP Registry (leave off to only validate)"
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -49,7 +44,7 @@ jobs:
 
   publish:
     name: Publish to the official registry
-    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     needs: validate
     runs-on: ubuntu-latest
     steps:
