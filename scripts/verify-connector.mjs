@@ -5,11 +5,12 @@
  *
  * Registry and directory listings send clients straight at the endpoint with
  * nothing but an OAuth discovery hop, so the contract they depend on — the 401
- * discovery chain, the advertised server version, and the annotated tool
- * surface — has to be checked from outside the deployment, against the URL
- * published in server.json.
+ * discovery chain, the advertised server version, and that every tool is
+ * titled and annotated — has to be checked from outside the deployment,
+ * against the URL published in server.json. Tool names and their read-only
+ * classification are pinned by the server's own tests, not here.
  *
- * Usage: HAMSTER_MCP_TOKEN=<bearer> node scripts/verify-connector.mjs
+ * Usage: HAMSTER_MCP_TOKEN=<bearer> HAMSTER_CONFORMANCE_ACCOUNT=<slug> node scripts/verify-connector.mjs
  *        HAMSTER_MCP_URL overrides the endpoint (defaults to server.json).
  */
 
@@ -20,55 +21,9 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// The deployed tool names with their read-only bit, maintained by hand. The
-// server's own tests pin every hint against its source; this baseline pins
-// names and the read-only classification against the deployment, so a tool
-// added, removed, or flipped between read and write without updating this list
-// fails here. Version parity is a separate check.
-const EXPECTED_TOOLS = new Map([
-  ["search", true],
-  ["list_accounts", true],
-  ["switch_account", false],
-  ["list_members", true],
-  ["list_briefs", true],
-  ["get_brief", true],
-  ["create_brief", false],
-  ["update_brief", false],
-  ["list_notes", true],
-  ["get_note", true],
-  ["create_note", false],
-  ["list_initiatives", true],
-  ["get_initiative", true],
-  ["create_initiative", false],
-  ["update_initiative", false],
-  ["archive_initiative", false],
-  ["unlink_brief_from_initiative", false],
-  ["list_tasks", true],
-  ["get_task", true],
-  ["create_task", false],
-  ["update_task", false],
-  ["update_task_status", false],
-  ["get_next_task", true],
-  ["list_subtasks", true],
-  ["create_subtask", false],
-  ["update_subtask", false],
-  ["delete_subtask", false],
-  ["list_documents", true],
-  ["get_document", true],
-  ["list_goals", true],
-  ["get_goal", true],
-  ["get_plan", true],
-  ["generate_plan", false],
-  ["trigger_delivery", false],
-  ["ask_hamster", false],
-  ["get_hamster_reply", true],
-  ["search_knowledge_graph", true],
-  ["explore_entity", true],
-  ["get_neighborhood", true],
-]);
-
 const token = process.env.HAMSTER_MCP_TOKEN ?? "";
 const authenticated = token !== "";
+const conformanceAccount = process.env.HAMSTER_CONFORMANCE_ACCOUNT ?? "";
 const server = JSON.parse(await readFile(path.join(repoRoot, "server.json"), "utf8"));
 const endpoint = process.env.HAMSTER_MCP_URL ?? server.remotes[0].url;
 const origin = new URL(endpoint).origin;
@@ -185,6 +140,7 @@ function assert(condition, message) {
 
 let authorizationServer = "";
 let tools = [];
+let accountConfirmed = false;
 
 await check("unauthenticated POST returns 401 with resource metadata", async () => {
   const res = await post({ jsonrpc: "2.0", id: 0, method: "tools/list", params: {} });
@@ -243,7 +199,7 @@ await checkAuthenticated("initialize reports the published server identity", asy
   return `${info.name} ${info.version}`;
 });
 
-await checkAuthenticated("tools/list matches the published tool surface", async () => {
+await checkAuthenticated("every listed tool carries a title and safety hints", async () => {
   const collected = [];
   let cursor;
   do {
@@ -252,17 +208,8 @@ await checkAuthenticated("tools/list matches the published tool surface", async 
     cursor = page.nextCursor;
   } while (cursor);
   tools = collected;
-
-  const names = new Set(tools.map((tool) => tool.name));
-  const missing = [...EXPECTED_TOOLS.keys()].filter((name) => !names.has(name));
-  const unexpected = [...names].filter((name) => !EXPECTED_TOOLS.has(name));
-  assert(missing.length === 0, `missing tools: ${missing.join(", ")}`);
-  assert(unexpected.length === 0, `undeclared tools: ${unexpected.join(", ")}`);
-  return `${tools.length} tools`;
-});
-
-await checkAuthenticated("every tool carries a title and safety hints", async () => {
   assert(tools.length > 0, "no tools were listed");
+
   const problems = [];
   for (const tool of tools) {
     const annotations = tool.annotations;
@@ -284,19 +231,27 @@ await checkAuthenticated("every tool carries a title and safety hints", async ()
   return `${tools.length} annotated`;
 });
 
-await checkAuthenticated("read-only hints match the published classification", async () => {
-  assert(tools.length > 0, "no tools were listed");
-  const wrong = tools
-    .filter((tool) => (tool.annotations?.readOnlyHint === true) !== EXPECTED_TOOLS.get(tool.name))
-    .map((tool) => `${tool.name} is ${tool.annotations?.readOnlyHint === true ? "read-only" : "writable"}`);
-  assert(wrong.length === 0, wrong.join("; "));
-  return `${[...EXPECTED_TOOLS.values()].filter(Boolean).length} read-only`;
+// The write round trip leaves a task behind, so the token must not be able to
+// reach a live team account: exactly one membership, and it is the declared
+// conformance workspace. Every check that reads or writes data depends on this.
+await checkAuthenticated("the token reaches only the conformance account", async () => {
+  assert(conformanceAccount !== "", "HAMSTER_CONFORMANCE_ACCOUNT is not set");
+  const accounts = await callTool("list_accounts");
+  assert(!accounts.isError, `list_accounts failed: ${accounts.text}`);
+  const slugs = (accounts.data?.accounts ?? []).map((account) => account.slug);
+  assert(
+    slugs.length === 1 && slugs[0] === conformanceAccount,
+    `token belongs to ${JSON.stringify(slugs)}, want exactly ["${conformanceAccount}"]`
+  );
+  const switched = await callTool("switch_account", { account_slug: conformanceAccount });
+  assert(!switched.isError, `switch_account failed: ${switched.text}`);
+  assert(switched.data?.account_slug === conformanceAccount, `active account is ${JSON.stringify(switched.data?.account_slug)}`);
+  accountConfirmed = true;
+  return conformanceAccount;
 });
 
 await checkAuthenticated("representative reads succeed", async () => {
-  const accounts = await callTool("list_accounts");
-  assert(!accounts.isError, `list_accounts failed: ${accounts.text}`);
-  assert((accounts.data?.accounts ?? []).length > 0, "list_accounts returned no accounts");
+  assert(accountConfirmed, "conformance account was not confirmed");
 
   const briefs = await callTool("list_briefs", { limit: 1 });
   assert(!briefs.isError, `list_briefs failed: ${briefs.text}`);
@@ -307,16 +262,18 @@ await checkAuthenticated("representative reads succeed", async () => {
   const brief = await callTool("get_brief", { brief_id: briefId });
   assert(!brief.isError, `get_brief failed: ${brief.text}`);
   assert(brief.data?.brief?.id === briefId, `get_brief returned no brief matching ${briefId}: ${brief.text}`);
-  return `${accounts.data.accounts.length} accounts, ${briefs.data.briefs.length} brief read`;
+  return `${briefs.data.briefs.length} brief read`;
 });
 
 await checkAuthenticated("a bad identifier is a tool error, not a transport failure", async () => {
+  assert(accountConfirmed, "conformance account was not confirmed");
   const result = await callTool("get_brief", { brief_id: "00000000-0000-0000-0000-000000000000" });
   assert(result.isError, "get_brief on a nonexistent id reported success");
   return (result.text ?? "").slice(0, 80);
 });
 
 await checkAuthenticated("write round trip creates, updates, and cleans up", async () => {
+  assert(accountConfirmed, "conformance account was not confirmed");
   const stamp = new Date().toISOString();
   const created = await callTool("create_task", { title: `MCP conformance ${stamp}` });
   assert(!created.isError, `create_task failed: ${created.text}`);
@@ -340,8 +297,8 @@ await checkAuthenticated("write round trip creates, updates, and cleans up", asy
   assert(!deleted.isError, `delete_subtask failed: ${deleted.text}`);
   assert(!(await listSubtaskIds(taskId)).includes(subtaskId), `list_subtasks still shows the deleted subtask ${subtaskId}`);
 
-  // The MCP surface has no delete_task, so the task itself stays behind. Run
-  // this against a dedicated conformance workspace, not a live team account.
+  // The MCP surface has no delete_task, so the task itself stays behind; the
+  // account gate above is what keeps it off a live team account.
   return `task ${taskId} left in place`;
 });
 

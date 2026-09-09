@@ -72,6 +72,8 @@ jobs:
           echo "::add-mask::$token"
           echo "HAMSTER_MCP_TOKEN=$token" >> "$GITHUB_ENV"
       - name: Exercise the published endpoint
+        env:
+          HAMSTER_CONFORMANCE_ACCOUNT: ${{ vars.HAMSTER_CONFORMANCE_ACCOUNT }}
         run: node scripts/verify-connector.mjs
       # The deployment check above proves the server reports server.json's
       # version; this proves the registry lists it. Without it a version bumped,
