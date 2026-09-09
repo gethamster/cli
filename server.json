@@ -6,7 +6,7 @@
   "version": "0.1.0",
   "websiteUrl": "https://tryhamster.com/docs/hamster-studio/mcp",
   "repository": {
-    "url": "https://github.com/gethamster/cli",
+    "url": "https://github.com/gethamster/plugin",
     "source": "github"
   },
   "remotes": [

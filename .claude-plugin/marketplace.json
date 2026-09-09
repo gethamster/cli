@@ -15,7 +15,7 @@
       "source": "./",
       "category": "workflow",
       "homepage": "https://tryhamster.com",
-      "repository": "https://github.com/gethamster/cli",
+      "repository": "https://github.com/gethamster/plugin",
       "author": {
         "name": "Hamster",
         "email": "hello@tryhamster.com"

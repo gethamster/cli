@@ -11,7 +11,7 @@ Installation differs by client. If you use more than one, install Hamster separa
 ### Cursor
 
 1. Customize → Add Marketplace → Import from GitHub.
-2. Paste `https://github.com/gethamster/cli` and select Import.
+2. Paste `https://github.com/gethamster/plugin` and select Import.
 3. Open the Hamster marketplace tab and select Add.
 
 On Enterprise, an admin must allow marketplace imports. Once Hamster is on the Cursor marketplace, `/add-plugin hamster` works too:
@@ -25,14 +25,14 @@ Grok Bot is not a separate Hamster package. It uses the same Cursor account and 
 ### Claude Code
 
 ```text
-/plugin marketplace add gethamster/cli
+/plugin marketplace add gethamster/plugin
 /plugin install hamster@hamster-plugins
 ```
 
 ### Codex CLI
 
 ```text
-codex plugin marketplace add gethamster/cli
+codex plugin marketplace add gethamster/plugin
 codex plugin add hamster@hamster-plugins
 ```
 
@@ -49,14 +49,14 @@ agy plugin install .
 Or from GitHub:
 
 ```text
-agy plugin install https://github.com/gethamster/cli
+agy plugin install https://github.com/gethamster/plugin
 ```
 
 If Hamster 3.2 is already installed, uninstall it before you install 3.4. An in-place Antigravity install retains the four skill directories renamed in 3.4.
 
 ```text
 agy plugin uninstall hamster
-agy plugin install https://github.com/gethamster/cli
+agy plugin install https://github.com/gethamster/plugin
 ```
 
 ## After install
@@ -230,7 +230,7 @@ hamster init
 hamster sync
 ```
 
-Or download a binary from the [latest release](https://github.com/gethamster/cli/releases/latest).
+Or download a binary from the [latest release](https://github.com/gethamster/plugin/releases/latest).
 
 Supported platforms: macOS (`amd64`, `arm64`), Linux (`amd64`, `arm64`), Windows (`amd64`).
 
