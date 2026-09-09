@@ -394,7 +394,9 @@ async function validateClaude(version) {
   validateMarketplaceEntry("Claude marketplace.json", entry, version);
 }
 
-async function validateCodexCatalog() {
+// The catalog carries its own copy of the listing category, so it can drift out
+// of the directory's enum or away from the manifest without either file failing.
+async function validateCodexCatalog(manifestCategory) {
   const catalogPath = path.join(repoRoot, ".agents", "plugins", "marketplace.json");
   const catalog = await readJsonFile(catalogPath, "Codex marketplace catalog");
   if (!catalog) {
@@ -414,6 +416,157 @@ async function validateCodexCatalog() {
 
   if (typeof catalog.interface?.displayName !== "string" || catalog.interface.displayName.length === 0) {
     addError(".agents/plugins/marketplace.json must include interface.displayName.");
+  }
+
+  if (!codexCategories.has(entry.category)) {
+    addError(
+      `.agents/plugins/marketplace.json plugins[0].category must be one of ${[...codexCategories].join(", ")}, got ${JSON.stringify(entry.category)}.`
+    );
+  } else if (manifestCategory !== undefined && entry.category !== manifestCategory) {
+    addError(
+      `.agents/plugins/marketplace.json category "${entry.category}" does not match .codex-plugin/plugin.json interface.category "${manifestCategory}".`
+    );
+  }
+}
+
+// Limits follow the final directory submission rules, which are stricter than
+// package upload (shortDescription 240 vs 30, displayName 80 vs 30,
+// developerName 120 vs 80, defaultPrompt 512 vs 128); passing the final numbers
+// passes both. Stricter than published, by choice: capabilities and
+// defaultPrompt must be non-empty arrays, since an empty card is the failure
+// this gate exists to catch. Image contents and brand-color contrast are left
+// to the directory's upload check, which rejects them instantly and reversibly.
+// https://developers.openai.com/plugins/deploy/submission-errors
+const codexCategories = new Set([
+  "Productivity",
+  "Creativity",
+  "Developer Tools",
+  "Business & Operations",
+  "Data & Analytics",
+  "Communication",
+  "Education & Research",
+  "Security",
+  "Finance",
+  "Healthcare",
+  "Travel",
+  "Entertainment",
+  "Other",
+]);
+const codexListing = {
+  displayName: { chars: 30 },
+  shortDescription: { chars: 30 },
+  longDescription: { chars: 4000, multiline: true },
+  developerName: { chars: 80 },
+  url: { chars: 1024 },
+  capabilities: { max: 20, chars: 120 },
+  defaultPrompt: { max: 3, chars: 128 },
+};
+
+function codexError(field, message) {
+  addError(`Codex plugin.json interface.${field} ${message}`);
+}
+
+function requireCodexText(field, value, { chars, multiline = false }) {
+  if (typeof value !== "string" || value.length === 0) {
+    codexError(field, "must be a non-empty string.");
+    return false;
+  }
+  if (value.length > chars) {
+    codexError(field, `is ${value.length} chars; directory submission caps it at ${chars}.`);
+  }
+  if (!multiline && /[\r\n]/.test(value)) {
+    codexError(field, "must fit on one line.");
+  }
+  return true;
+}
+
+function requireCodexPath(field, value) {
+  if (typeof value !== "string" || value.length === 0) {
+    codexError(field, "must be a non-empty path.");
+    return false;
+  }
+  return true;
+}
+
+// Yields nothing when the array itself is wrong: per-entry errors under an
+// already-rejected count are noise.
+function codexEntries(field, value, max) {
+  if (!Array.isArray(value) || value.length === 0) {
+    codexError(field, "must be a non-empty array.");
+    return [];
+  }
+  if (value.length > max) {
+    codexError(field, `has ${value.length} entries; the directory allows at most ${max}.`);
+    return [];
+  }
+  return [...value.entries()];
+}
+
+function requireCodexHttpsUrl(field, value) {
+  if (!requireCodexText(field, value, codexListing.url)) {
+    return;
+  }
+  if (!value.startsWith("https://")) {
+    codexError(field, `must be https, got "${value}".`);
+  }
+}
+
+async function requireCodexAsset(field, value) {
+  if (!requireCodexPath(field, value)) {
+    return;
+  }
+  if (!value.startsWith("./")) {
+    codexError(field, `must start with "./", got "${value}".`);
+  }
+  await validateReferencedPath(repoRoot, `interface.${field}`, value, "codex");
+}
+
+async function validateCodexInterface(iface) {
+  for (const field of ["displayName", "developerName", "shortDescription", "longDescription"]) {
+    requireCodexText(field, iface[field], codexListing[field]);
+  }
+
+  if (!codexCategories.has(iface.category)) {
+    codexError(
+      "category",
+      `must be one of ${[...codexCategories].join(", ")}, got ${JSON.stringify(iface.category)}.`
+    );
+  }
+
+  for (const [index, capability] of codexEntries("capabilities", iface.capabilities, codexListing.capabilities.max)) {
+    requireCodexText(`capabilities[${index}]`, capability, codexListing.capabilities);
+  }
+
+  const seenPrompts = new Set();
+  for (const [index, prompt] of codexEntries("defaultPrompt", iface.defaultPrompt, codexListing.defaultPrompt.max)) {
+    if (!requireCodexText(`defaultPrompt[${index}]`, prompt, codexListing.defaultPrompt)) {
+      continue;
+    }
+    if (prompt.includes("@")) {
+      codexError(`defaultPrompt[${index}]`, 'must not mention another plugin with "@".');
+    }
+    const normalized = prompt.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
+    if (seenPrompts.has(normalized)) {
+      codexError(`defaultPrompt[${index}]`, "duplicates an earlier prompt.");
+    }
+    seenPrompts.add(normalized);
+  }
+
+  for (const field of ["websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"]) {
+    requireCodexHttpsUrl(field, iface[field]);
+  }
+
+  for (const field of ["brandColor", "brandColorDark"]) {
+    if (iface[field] !== undefined && !/^#[0-9a-fA-F]{6}$/.test(iface[field])) {
+      codexError(field, `must be a six-digit hex color, got ${JSON.stringify(iface[field])}.`);
+    }
+  }
+
+  for (const field of ["logo", "composerIcon"]) {
+    await requireCodexAsset(field, iface[field]);
+  }
+  if (iface.logoDark !== undefined) {
+    await requireCodexAsset("logoDark", iface.logoDark);
   }
 }
 
@@ -435,21 +588,15 @@ async function validateCodex(version) {
     return;
   }
 
-  if (typeof manifest.interface.displayName !== "string" || manifest.interface.displayName.length === 0) {
-    addError('Codex plugin.json must include interface.displayName.');
-  }
-
-  if (typeof manifest.interface.logo !== "string" || manifest.interface.logo.length === 0) {
-    addError("Codex plugin.json must include interface.logo.");
-  } else {
-    await validateReferencedPath(repoRoot, "interface.logo", manifest.interface.logo, "codex");
-  }
+  await validateCodexInterface(manifest.interface);
 
   if (manifest.license !== "MIT") {
     addError('Codex plugin.json "license" must be "MIT".');
   }
 
   requireVersionParity("Codex plugin.json", manifest.version, version);
+
+  return manifest.interface.category;
 }
 
 async function validateMcpFiles() {
@@ -674,8 +821,8 @@ async function main() {
     const version = rootManifest?.version ?? null;
     await validateCursor(version);
     await validateClaude(version);
-    await validateCodex(version);
-    await validateCodexCatalog();
+    const codexCategory = await validateCodex(version);
+    await validateCodexCatalog(codexCategory);
     await validateNoAntigravityNest();
     await validateSkillsAreSelfContained();
     await validateSkillLocalReferences();
