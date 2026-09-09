@@ -139,25 +139,27 @@ function isSafeRelativePath(value) {
 
 async function validateReferencedPath(pluginDir, fieldName, pathValue, pluginName) {
   if (pathValue.startsWith("http://") || pathValue.startsWith("https://")) {
-    return;
+    return null;
   }
 
   if (!isSafeRelativePath(pathValue)) {
     addError(
       `${pluginName}: field "${fieldName}" has invalid path "${pathValue}". Use a relative path without ".." or absolute prefixes.`
     );
-    return;
+    return null;
   }
 
   const resolved = path.resolve(pluginDir, pathValue);
   try {
-    const exists = await pathExists(resolved);
-    if (!exists) {
+    if (!(await pathExists(resolved))) {
       addError(`${pluginName}: field "${fieldName}" references missing path "${pathValue}".`);
+      return null;
     }
   } catch (error) {
     addError(`${pluginName}: field "${fieldName}" could not access "${pathValue}": ${error.message}`);
+    return null;
   }
+  return resolved;
 }
 
 async function validateFrontmatterFile(filePath, componentName, requiredKeys, pluginName) {
@@ -429,11 +431,13 @@ async function validateCodexCatalog(manifestCategory) {
   }
 }
 
-// Every constant below is the published submission rule:
+// Limits follow the final directory submission rules, which are stricter than
+// package upload (shortDescription 240 vs 30, displayName 80 vs 30,
+// developerName 120 vs 80, defaultPrompt 512 vs 128); passing the final numbers
+// passes both. Stricter than published, by choice: capabilities and
+// defaultPrompt must be non-empty arrays (an empty card is the failure this
+// gate exists to catch), and the 4096px ceiling is applied to SVGs as well.
 // https://developers.openai.com/plugins/deploy/submission-errors
-// Package validation is looser than final directory submission (shortDescription
-// 240 vs 30, displayName 80 vs 30, defaultPrompt 512 vs 128); we gate on the
-// final numbers because passing those passes both.
 const codexCategories = new Set([
   "Productivity",
   "Creativity",
@@ -551,19 +555,7 @@ async function resolveCodexAsset(field, value) {
   if (!value.startsWith("./")) {
     codexError(field, `must start with "./", got "${value}".`);
   }
-
-  if (!isSafeRelativePath(value)) {
-    codexError(field, `must be a relative path inside the package, got "${value}".`);
-    return null;
-  }
-
-  const resolved = path.resolve(repoRoot, value);
-  if (!(await pathExists(resolved))) {
-    codexError(field, `references missing path "${value}".`);
-    return null;
-  }
-
-  return resolved;
+  return validateReferencedPath(repoRoot, `interface.${field}`, value, "codex");
 }
 
 function requireCodexSquare(field, width, height, verb) {
@@ -662,19 +654,6 @@ async function validateCodexInterface(iface) {
   }
   if (iface.logoDark !== undefined && requireCodexPath("logoDark", iface.logoDark)) {
     await validateCodexImage("logoDark", iface.logoDark);
-  }
-
-  if (iface.screenshots === undefined) {
-    return;
-  }
-  if (!Array.isArray(iface.screenshots)) {
-    codexError("screenshots", "must be an array.");
-    return;
-  }
-  for (const [index, shot] of iface.screenshots.entries()) {
-    if (requireCodexPath(`screenshots[${index}]`, shot)) {
-      await resolveCodexAsset(`screenshots[${index}]`, shot);
-    }
   }
 }
 

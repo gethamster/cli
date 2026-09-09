@@ -245,7 +245,7 @@ test("a missing Codex image file fails validation", async () => {
 
   const result = await runValidator(cwd);
   assert.notEqual(result.code, 0);
-  assert.match(result.stderr, /interface\.composerIcon references missing path "\.\/assets\/does-not-exist\.png"/);
+  assert.match(result.stderr, /field "interface\.composerIcon" references missing path "\.\/assets\/does-not-exist\.png"/);
 });
 
 test("a Codex catalog category that drifts from the manifest fails validation", async () => {

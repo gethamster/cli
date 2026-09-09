@@ -37,7 +37,6 @@
     "brandColorDark": "#ffffff",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.png",
-    "logoDark": "./assets/logo-dark.png",
-    "screenshots": []
+    "logoDark": "./assets/logo-dark.png"
   }
 }
