@@ -38,7 +38,7 @@ Read [brief-selection](references/brief-selection.md) and run **Account Resoluti
 ```bash
 export PATH="$HOME/.hamster/bin:$PATH"
 errors=""
-command -v hamster >/dev/null 2>&1 || errors="${errors}hamster CLI not found. Run the setup skill.\n"
+command -v hamster >/dev/null 2>&1 || errors="${errors}hamster CLI not found. Install from https://tryhamster.com/plugin/install\n"
 [ -d ".hamster" ] || errors="${errors}.hamster/ directory not found. Run 'hamster sync' first.\n"
 command -v gh >/dev/null 2>&1 || errors="${errors}gh CLI not found. Install from https://cli.github.com\n"
 dirty=$(git status --porcelain 2>/dev/null | head -5)

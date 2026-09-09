@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { chmod, cp, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, mkdtemp, readdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,7 +10,7 @@ import { after, test } from "node:test";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(repoRoot, "scripts", "validate-plugin.mjs");
-const bundleBuilderPath = path.join(repoRoot, "scripts", "build-codex-bundle.mjs");
+const bundleBuilderPath = path.join(repoRoot, "scripts", "build-codex-skills-bundle.mjs");
 const readyScript = path.join(repoRoot, "skills", "setup", "scripts", "ensure-ready.sh");
 
 const PACKAGE_ENTRIES = [
@@ -26,6 +26,7 @@ const PACKAGE_ENTRIES = [
   "skills",
   "agents",
   "assets",
+  "scripts",
 ];
 
 const fixtures = [];
@@ -286,6 +287,7 @@ test("the Codex bundle carries only skills, assets, and an MCP-free manifest", a
 test("excluding a skill drops it and keeps the rest", async () => {
   const cwd = await makeTemp("hamster-plugin-bundle-exclude-");
   await copyPackage(cwd);
+  const totalSkills = (await readdir(path.join(cwd, "skills"))).length;
 
   const { result, zipPath } = await buildCodexBundle(cwd, ["--exclude", "setup"]);
   assert.equal(result.code, 0, result.stderr);
@@ -293,7 +295,7 @@ test("excluding a skill drops it and keeps the rest", async () => {
   const entries = await zipEntries(zipPath);
   assert.ok(!entries.includes("skills/setup/SKILL.md"));
   const skillFiles = entries.filter((entry) => /^skills\/[^/]+\/SKILL\.md$/.test(entry));
-  assert.equal(skillFiles.length, 7);
+  assert.equal(skillFiles.length, totalSkills - 1);
 });
 
 test("failed hamster status prints to stderr and stdout stays SETUP_NEEDED", async () => {

@@ -2,7 +2,7 @@
 
 **Install Hamster.** One plugin. Talk through hosted MCP or the CLI. Keep the plan on disk, then ship from it.
 
-This is the Hamster product: Agent Plugins skills and hosted MCP on every supported client, plus generated native execution workers on Claude Code where that client registers them. The CLI is how the plan stays in this repo. It is not a second install.
+This is the Hamster product: Agent Plugins skills on every supported client, hosted MCP on every client that installs from GitHub or a marketplace, plus generated native execution workers on Claude Code where that client registers them. The CLI is how the plan stays in this repo. It is not a second install.
 
 ## Install
 
@@ -40,7 +40,7 @@ You can also launch `codex`, run `/plugins`, and install `hamster@hamster-plugin
 
 ### Codex Plugins Directory
 
-The Hamster listing in Codex's Plugins Directory is a skills-only build of this same skills tree, produced by `node scripts/build-codex-bundle.mjs`. A directory install carries the skills and nothing else, so it does not register the hosted MCP connector: Ask Hamster answers through `hamster chat` there unless you add the connector yourself, as described in [Advanced: hosted MCP without the plugin](#advanced-hosted-mcp-without-the-plugin). The GitHub and marketplace installs above are unaffected and keep the connector.
+The Hamster listing in Codex's Plugins Directory is a skills-only build of this same skills tree, produced by `node scripts/build-codex-skills-bundle.mjs`. A directory install carries the skills and nothing else, so it does not register the hosted MCP connector: Ask Hamster answers through `hamster chat` there unless you add the connector yourself, as described in [Advanced: hosted MCP without the plugin](#advanced-hosted-mcp-without-the-plugin). The GitHub and marketplace installs above are unaffected and keep the connector.
 
 ### Antigravity
 

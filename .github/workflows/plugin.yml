@@ -22,8 +22,9 @@ jobs:
       - name: Validate plugin package
         run: node scripts/validate-plugin.mjs
       - name: Build Codex skills-only bundle
-        run: node scripts/build-codex-bundle.mjs
-      - uses: actions/upload-artifact@v4
+        run: node scripts/build-codex-skills-bundle.mjs
+      - name: Upload Codex skills-only bundle
+        uses: actions/upload-artifact@v4
         with:
           name: codex-skills-only-bundle
           path: dist/*.zip

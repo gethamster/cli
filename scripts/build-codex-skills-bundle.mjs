@@ -9,9 +9,9 @@
  * full CLI + MCP + skills shape for every GitHub and marketplace install.
  *
  * Usage:
- *   node scripts/build-codex-bundle.mjs                       # dist/
- *   node scripts/build-codex-bundle.mjs --out build           # custom output
- *   node scripts/build-codex-bundle.mjs --exclude setup       # drop a skill
+ *   node scripts/build-codex-skills-bundle.mjs                       # dist/
+ *   node scripts/build-codex-skills-bundle.mjs --out build           # custom output
+ *   node scripts/build-codex-skills-bundle.mjs --exclude setup       # drop a skill
  */
 
 import { execFileSync } from "node:child_process";
@@ -107,7 +107,6 @@ async function stageBundle(stagingDir, skillNames) {
     await fs.cp(path.join(repoRoot, "skills", name), path.join(stagingDir, "skills", name), {
       recursive: true,
       dereference: true,
-      verbatimSymlinks: false,
     });
   }
 
@@ -172,8 +171,9 @@ async function verifyStaging(stagingDir, manifest, skillNames) {
 
 function writeZip(stagingDir, zipPath) {
   try {
-    // -X drops extra attributes so the same tree always zips to the same bytes;
-    // the archive root is the plugin root, which the portal requires.
+    // -X drops uid/gid and extended attributes, so the archive carries no
+    // build-machine metadata; the archive root is the plugin root, which the
+    // portal requires.
     execFileSync("zip", ["-r", "-X", "-q", zipPath, "."], { cwd: stagingDir });
   } catch (error) {
     if (error?.code === "ENOENT") {
@@ -185,6 +185,15 @@ function writeZip(stagingDir, zipPath) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+
+  // The staged manifest is the repo manifest minus one key, so validating the
+  // checkout covers every listing rule the portal enforces on the artifact —
+  // this also runs when the bundle is built by hand off a tag, with no CI ahead of it.
+  execFileSync(process.execPath, [path.join(repoRoot, "scripts", "validate-plugin.mjs")], {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
+
   const { version } = await readJsonFile(path.join(repoRoot, "plugin.json"));
   if (!version) {
     throw new Error("Root plugin.json has no version.");
